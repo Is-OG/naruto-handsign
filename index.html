@@ -1,10 +1,167 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Naruto Hand Signs</title>
-  </head>
-  <body>
-    <h1>Naruto Hand Sign Detector 🥷</h1>
-    <p>Coming soon...</p>
-  </body>
+<head>
+  <title>Naruto Hand Sign Detector</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+    h1 {
+      margin: 20px 0 10px;
+      color: #ff6b00;
+      font-size: 28px;
+      text-shadow: 0 0 10px #ff6b00;
+    }
+    #container {
+      position: relative;
+      width: 640px;
+      height: 480px;
+    }
+    video {
+      width: 640px;
+      height: 480px;
+      border: 3px solid #ff6b00;
+      border-radius: 10px;
+      transform: scaleX(-1);
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 640px;
+      height: 480px;
+      transform: scaleX(-1);
+    }
+    #sign-display {
+      margin-top: 20px;
+      font-size: 36px;
+      font-weight: bold;
+      color: #ff6b00;
+      text-shadow: 0 0 20px #ff6b00;
+      min-height: 50px;
+    }
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🥷 Naruto Hand Sign Detector</h1>
+
+  <div id="container">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <div id="sign-display">Waiting for hand...</div>
+  <div id="status">Loading hand tracker...</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const signDisplay = document.getElementById('sign-display');
+    const status = document.getElementById('status');
+
+    canvas.width = 640;
+    canvas.height = 480;
+
+    const hands = new Hands({locateFile: (file) => {
+      return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+    }});
+
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7
+    });
+
+    hands.onResults((results) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+
+        // Draw connections
+        for (const connection of HAND_CONNECTIONS) {
+          const start = landmarks[connection[0]];
+          const end = landmarks[connection[1]];
+          ctx.beginPath();
+          ctx.moveTo(start.x * 640, start.y * 480);
+          ctx.lineTo(end.x * 640, end.y * 480);
+          ctx.strokeStyle = '#00ff88';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        // Draw dots
+        for (const landmark of landmarks) {
+          ctx.beginPath();
+          ctx.arc(landmark.x * 640, landmark.y * 480, 5, 0, 2 * Math.PI);
+          ctx.fillStyle = '#ff0000';
+          ctx.fill();
+        }
+
+        signDisplay.textContent = detectSign(landmarks);
+        status.textContent = 'Hand detected!';
+      } else {
+        signDisplay.textContent = 'Waiting for hand...';
+        status.textContent = 'No hand detected';
+      }
+    });
+
+    function detectSign(lm) {
+      const fingers = getFingerStates(lm);
+      const [thumb, index, middle, ring, pinky] = fingers;
+
+      if (!thumb && !index && !middle && !ring && !pinky)
+        return '🐍 Snake';
+      if (thumb && index && middle && ring && pinky)
+        return '🖐️ Tiger';
+      if (!thumb && index && middle && !ring && !pinky)
+        return '🐂 Ox';
+      if (!thumb && index && !middle && !ring && pinky)
+        return '🐕 Dog';
+      if (!thumb && !index && !middle && !ring && pinky)
+        return '🐦 Bird';
+
+      return '🤔 Keep trying...';
+    }
+
+    function getFingerStates(lm) {
+      return [
+        lm[4].x < lm[3].x,
+        lm[8].y < lm[6].y,
+        lm[12].y < lm[10].y,
+        lm[16].y < lm[14].y,
+        lm[20].y < lm[18].y
+      ];
+    }
+
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await hands.send({image: video});
+      },
+      width: 640,
+      height: 480
+    });
+
+    camera.start().then(() => {
+      status.textContent = 'Camera ready! Show your hand!';
+    });
+  </script>
+</body>
 </html>
