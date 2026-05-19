@@ -4,7 +4,6 @@
   <title>Naruto Hand Sign Detector</title>
 
   <style>
-
     *{
       margin:0;
       padding:0;
@@ -12,7 +11,7 @@
     }
 
     body{
-      background:#0a0a0a;
+      background:#050505;
       display:flex;
       flex-direction:column;
       align-items:center;
@@ -62,7 +61,7 @@
       width:640px;
       height:480px;
       border-radius:12px;
-      background:radial-gradient(circle,#aaeeff,white);
+      background:radial-gradient(circle,#ffffff,#88eeff,transparent);
       opacity:0;
       pointer-events:none;
       transition:opacity 0.05s;
@@ -136,7 +135,7 @@
     #status{
       margin-top:6px;
       font-size:13px;
-      color:#555;
+      color:#666;
       min-height:20px;
     }
 
@@ -158,7 +157,6 @@
       border-radius:3px;
       transition:width 0.05s linear;
     }
-
   </style>
 </head>
 
@@ -180,122 +178,65 @@
   <div id="hold-bar"></div>
 </div>
 
-<div id="jutsu-name">🔵 Rasengan!</div>
+<div id="jutsu-name">⚡ Rasengan!</div>
 
 <div id="status">Loading...</div>
-
-<audio id="rasengan-sound" loop>
-  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_7d5df5d7f4.mp3?filename=energy-110198.mp3" type="audio/mpeg">
-</audio>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 
 <script>
 
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const video=document.getElementById('video');
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
 
-const signDisplay = document.getElementById('sign-display');
-const comboDisplay = document.getElementById('combo-display');
-const jutsuNameEl = document.getElementById('jutsu-name');
-const statusEl = document.getElementById('status');
+const signDisplay=document.getElementById('sign-display');
+const comboDisplay=document.getElementById('combo-display');
+const jutsuNameEl=document.getElementById('jutsu-name');
+const statusEl=document.getElementById('status');
 
-const holdBarWrap = document.getElementById('hold-bar-wrap');
-const holdBar = document.getElementById('hold-bar');
+const holdBarWrap=document.getElementById('hold-bar-wrap');
+const holdBar=document.getElementById('hold-bar');
 
-const flashEl = document.getElementById('flash');
+const flashEl=document.getElementById('flash');
 
-const rasenganSound = document.getElementById('rasengan-sound');
+canvas.width=640;
+canvas.height=480;
 
-canvas.width = 640;
-canvas.height = 480;
+const COMBO=['🐍 Snake','🐦 Bird','🖐️ Tiger'];
 
-const COMBO = ['🐍 Snake', '🐦 Bird', '🐂 Ox', '🖐️ Tiger'];
+let comboIndex=0;
+let lastSign='';
+let holdStart=null;
 
-let comboIndex = 0;
-let lastSign = '';
-let holdStart = null;
+const HOLD_MS=150;
 
-const HOLD_MS = 700;
+let jutsuActive=false;
 
-let jutsuActive = false;
+let rasenX=320;
+let rasenY=240;
 
-let rasenX = 320;
-let rasenY = 240;
+let rasenTargetX=320;
+let rasenTargetY=240;
 
-let rasenTargetX = 320;
-let rasenTargetY = 240;
+let rasenAngle=0;
+let rasenScale=0;
 
-let rasenAngle = 0;
-let rasenScale = 0;
+let shakeFrames=0;
 
-let shakeFrames = 0;
-
-let particles = [];
-let chakraParticles = [];
-
-let time = 0;
+let time=0;
 
 function triggerFlash(){
 
   flashEl.style.opacity='1';
 
   setTimeout(()=>flashEl.style.opacity='0.5',60);
-  setTimeout(()=>flashEl.style.opacity='0',350);
+  setTimeout(()=>flashEl.style.opacity='0',400);
 }
 
 function triggerShake(){
-  shakeFrames=22;
-}
-
-function spawnBurstParticles(x,y){
-
-  for(let i=0;i<80;i++){
-
-    const angle=Math.random()*Math.PI*2;
-    const speed=Math.random()*8+2;
-
-    particles.push({
-      x,
-      y,
-      vx:Math.cos(angle)*speed,
-      vy:Math.sin(angle)*speed,
-      life:1,
-      size:Math.random()*5+1,
-      color:['#ffffff','#cceeff','#88ddff','#44bbff','#00aaff'][Math.floor(Math.random()*5)]
-    });
-  }
-}
-
-function spawnWindParticle(x,y,angle){
-
-  const spread=(Math.random()-0.5)*1.2;
-  const speed=Math.random()*5+2;
-
-  particles.push({
-    x:x+(Math.random()-0.5)*50,
-    y:y+(Math.random()-0.5)*50,
-    vx:Math.cos(angle+spread)*speed,
-    vy:Math.sin(angle+spread)*speed,
-    life:1,
-    size:Math.random()*4+1,
-    color:['rgba(255,255,255,0.9)','rgba(180,235,255,0.8)','rgba(100,200,255,0.7)'][Math.floor(Math.random()*3)]
-  });
-}
-
-function spawnChakraParticle(x,y){
-
-  chakraParticles.push({
-    x,
-    y,
-    vx:(Math.random()-0.5)*3,
-    vy:(Math.random()-0.5)*3-1,
-    life:1,
-    size:Math.random()*4+2,
-    color:Math.random()>0.5 ? '#00cfff' : '#ffffff'
-  });
+  shakeFrames=20;
 }
 
 function updateComboUI(){
@@ -328,15 +269,8 @@ function activateJutsu(x,y){
 
   rasenScale=0;
 
-  particles=[];
-
   triggerFlash();
   triggerShake();
-
-  spawnBurstParticles(x,y);
-
-  rasenganSound.volume=0.5;
-  rasenganSound.play();
 
   statusEl.textContent='JUTSU ACTIVE — remove hand to cancel';
 }
@@ -349,14 +283,9 @@ function deactivateJutsu(){
 
   rasenScale=0;
 
-  particles=[];
-
   comboIndex=0;
 
   updateComboUI();
-
-  rasenganSound.pause();
-  rasenganSound.currentTime=0;
 
   statusEl.textContent='Jutsu cancelled — show hand to restart';
 }
@@ -367,166 +296,215 @@ function drawRasengan(x,y,angle,scale){
 
   time++;
 
-  const r=80*Math.min(scale,1);
+  const r=58*Math.min(scale,1);
 
-  for(let i=0;i<5;i++){
-    spawnWindParticle(x,y,angle+Math.random()*Math.PI*2);
-  }
-
-  ctx.save();
-
-  particles=particles.filter(p=>p.life>0.02);
-
-  for(const p of particles){
-
-    p.x+=p.vx;
-    p.y+=p.vy;
-
-    p.life*=0.93;
-
-    ctx.globalAlpha=p.life;
-
-    ctx.beginPath();
-
-    ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
-
-    ctx.fillStyle=p.color;
-
-    ctx.shadowColor='#66ddff';
-    ctx.shadowBlur=15;
-
-    ctx.fill();
-  }
-
-  ctx.restore();
+  const pulse=1+Math.sin(time*0.12)*0.025;
 
   ctx.save();
 
   ctx.translate(x,y);
 
-  const pulse=1+Math.sin(time*0.18)*0.05;
+  ctx.globalAlpha=Math.min(scale,1);
 
-  const aura=ctx.createRadialGradient(0,0,r*0.2,0,0,r*2.2);
+  // NATURAL OUTER AURA
 
-  aura.addColorStop(0,'rgba(255,255,255,0.9)');
-  aura.addColorStop(0.2,'rgba(150,240,255,0.8)');
-  aura.addColorStop(0.5,'rgba(0,170,255,0.35)');
-  aura.addColorStop(1,'rgba(0,0,255,0)');
+  const outerAura=ctx.createRadialGradient(
+    0,0,r*0.2,
+    0,0,r*3.4
+  );
+
+  outerAura.addColorStop(0,'rgba(150,255,255,0.04)');
+  outerAura.addColorStop(0.25,'rgba(0,210,255,0.08)');
+  outerAura.addColorStop(0.55,'rgba(0,110,255,0.05)');
+  outerAura.addColorStop(1,'rgba(0,0,255,0)');
 
   ctx.beginPath();
-  ctx.arc(0,0,r*2.2*pulse,0,Math.PI*2);
 
-  ctx.fillStyle=aura;
+  ctx.arc(0,0,r*3.4*pulse,0,Math.PI*2);
+
+  ctx.fillStyle=outerAura;
 
   ctx.fill();
 
-  for(let layer=0;layer<5;layer++){
+  // SOFT RANDOM ENERGY FOG
 
-    ctx.save();
+  for(let i=0;i<28;i++){
 
-    ctx.rotate(angle*(layer%2===0 ? 1 : -1)*(layer+1)*0.8);
+    const a=Math.random()*Math.PI*2;
+
+    const dist=Math.random()*r*1.5;
+
+    const size=Math.random()*r*0.9;
+
+    const px=Math.cos(a)*dist;
+    const py=Math.sin(a)*dist;
+
+    const fog=ctx.createRadialGradient(
+      px,py,0,
+      px,py,size
+    );
+
+    fog.addColorStop(0,'rgba(120,220,255,0.04)');
+    fog.addColorStop(1,'rgba(0,0,255,0)');
 
     ctx.beginPath();
 
-    for(let i=0;i<Math.PI*2;i+=0.08){
+    ctx.arc(px,py,size,0,Math.PI*2);
 
-      const rr=
-        r*0.6+
-        Math.sin(i*8+time*0.18+layer)*8;
-
-      const px=Math.cos(i)*rr;
-      const py=Math.sin(i)*rr;
-
-      if(i===0){
-        ctx.moveTo(px,py);
-      }else{
-        ctx.lineTo(px,py);
-      }
-    }
-
-    ctx.closePath();
-
-    ctx.strokeStyle=`rgba(200,245,255,${0.35-layer*0.05})`;
-
-    ctx.lineWidth=3-layer*0.3;
-
-    ctx.shadowColor='#88e5ff';
-    ctx.shadowBlur=25;
-
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  const sphere=ctx.createRadialGradient(0,0,0,0,0,r);
-
-  sphere.addColorStop(0,'rgba(255,255,255,1)');
-  sphere.addColorStop(0.1,'rgba(220,250,255,1)');
-  sphere.addColorStop(0.3,'rgba(120,235,255,1)');
-  sphere.addColorStop(0.6,'rgba(0,170,255,0.9)');
-  sphere.addColorStop(0.85,'rgba(0,80,255,0.45)');
-  sphere.addColorStop(1,'rgba(0,50,255,0)');
-
-  ctx.beginPath();
-
-  ctx.arc(0,0,r*pulse,0,Math.PI*2);
-
-  ctx.fillStyle=sphere;
-
-  ctx.shadowColor='#00ccff';
-  ctx.shadowBlur=60;
-
-  ctx.fill();
-
-  const core=ctx.createRadialGradient(0,0,0,0,0,r*0.22);
-
-  core.addColorStop(0,'rgba(255,255,255,1)');
-  core.addColorStop(0.5,'rgba(180,255,255,0.95)');
-  core.addColorStop(1,'rgba(0,200,255,0.1)');
-
-  ctx.beginPath();
-
-  ctx.arc(0,0,r*0.22,0,Math.PI*2);
-
-  ctx.fillStyle=core;
-
-  ctx.shadowColor='white';
-  ctx.shadowBlur=35;
-
-  ctx.fill();
-
-  ctx.restore();
-}
-
-function drawChakraParticles(){
-
-  chakraParticles=chakraParticles.filter(p=>p.life>0.05);
-
-  for(const p of chakraParticles){
-
-    p.x+=p.vx;
-    p.y+=p.vy;
-
-    p.vy-=0.05;
-
-    p.life*=0.88;
-
-    ctx.globalAlpha=p.life*0.8;
-
-    ctx.beginPath();
-
-    ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);
-
-    ctx.fillStyle=p.color;
-
-    ctx.shadowColor=p.color;
-    ctx.shadowBlur=6;
+    ctx.fillStyle=fog;
 
     ctx.fill();
   }
 
-  ctx.globalAlpha=1;
-  ctx.shadowBlur=0;
+  // MAIN BALL
+
+  const sphere=ctx.createRadialGradient(
+    -r*0.2,
+    -r*0.2,
+    r*0.03,
+    0,
+    0,
+    r
+  );
+
+  sphere.addColorStop(0,'rgba(255,255,255,1)');
+  sphere.addColorStop(0.10,'rgba(210,250,255,1)');
+  sphere.addColorStop(0.30,'rgba(90,235,255,0.92)');
+  sphere.addColorStop(0.58,'rgba(0,155,255,0.72)');
+  sphere.addColorStop(0.85,'rgba(0,70,220,0.34)');
+  sphere.addColorStop(1,'rgba(0,40,180,0)');
+
+  ctx.beginPath();
+
+  ctx.arc(
+    0,
+    0,
+    r*pulse,
+    0,
+    Math.PI*2
+  );
+
+  ctx.fillStyle=sphere;
+
+  ctx.shadowColor='#00cfff';
+  ctx.shadowBlur=45;
+
+  ctx.fill();
+
+  // RANDOM WHITE SCRIBBLE LINES
+
+  ctx.save();
+
+  ctx.rotate(angle*0.8);
+
+  for(let i=0;i<170;i++){
+
+    const startA=Math.random()*Math.PI*2;
+    const endA=startA+(Math.random()-0.5)*2;
+
+    const startR=Math.random()*r*0.92;
+    const endR=Math.random()*r*0.92;
+
+    const sx=Math.cos(startA)*startR;
+    const sy=Math.sin(startA)*startR;
+
+    const ex=Math.cos(endA)*endR;
+    const ey=Math.sin(endA)*endR;
+
+    const c1x=(sx+ex)/2+(Math.random()-0.5)*25;
+    const c1y=(sy+ey)/2+(Math.random()-0.5)*25;
+
+    ctx.beginPath();
+
+    ctx.moveTo(sx,sy);
+
+    ctx.quadraticCurveTo(
+      c1x,
+      c1y,
+      ex,
+      ey
+    );
+
+    ctx.strokeStyle=`rgba(255,255,255,${
+      0.18+Math.random()*0.25
+    })`;
+
+    ctx.lineWidth=0.7+Math.random()*1.1;
+
+    ctx.shadowColor='rgba(255,255,255,0.7)';
+    ctx.shadowBlur=5;
+
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  // INNER ENERGY SWIRL
+
+  ctx.save();
+
+  ctx.rotate(-angle*1.5);
+
+  for(let i=0;i<12;i++){
+
+    ctx.rotate(Math.PI*2/12);
+
+    ctx.beginPath();
+
+    ctx.arc(
+      0,
+      0,
+      r*0.46,
+      -0.7,
+      0.7
+    );
+
+    ctx.strokeStyle='rgba(150,255,255,0.12)';
+
+    ctx.lineWidth=1.3;
+
+    ctx.shadowColor='#88ffff';
+    ctx.shadowBlur=8;
+
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  // BRIGHT CORE
+
+  const core=ctx.createRadialGradient(
+    0,
+    0,
+    0,
+    0,
+    0,
+    r*0.30
+  );
+
+  core.addColorStop(0,'rgba(255,255,255,1)');
+  core.addColorStop(0.4,'rgba(220,255,255,0.95)');
+  core.addColorStop(0.8,'rgba(120,255,255,0.35)');
+  core.addColorStop(1,'rgba(0,255,255,0)');
+
+  ctx.beginPath();
+
+  ctx.arc(
+    0,
+    0,
+    r*0.30,
+    0,
+    Math.PI*2
+  );
+
+  ctx.fillStyle=core;
+
+  ctx.shadowColor='white';
+  ctx.shadowBlur=30;
+
+  ctx.fill();
+
+  ctx.restore();
 }
 
 function drawSkeleton(lm,alpha){
@@ -594,11 +572,7 @@ function detectSign(lm,handedness){
 
   if(!thumb&&!index&&!middle&&!ring&&!pinky) return '🐍 Snake';
   if(thumb&&index&&middle&&ring&&pinky) return '🖐️ Tiger';
-  if(!thumb&&index&&middle&&!ring&&!pinky) return '🐂 Ox';
-  if(!thumb&&index&&!middle&&!ring&&pinky) return '🐕 Dog';
   if(!thumb&&!index&&!middle&&!ring&&pinky) return '🐦 Bird';
-  if(!thumb&&index&&middle&&ring&&!pinky) return '🐑 Ram';
-  if(thumb&&index&&!middle&&!ring&&pinky) return '🐗 Boar';
 
   return '🤔 Keep trying...';
 }
@@ -620,7 +594,7 @@ hands.onResults((results)=>{
 
     shakeFrames--;
 
-    const s=(shakeFrames/22)*8;
+    const s=(shakeFrames/20)*6;
 
     canvas.style.transform=
       `scaleX(-1) translate(${(Math.random()-.5)*s}px,${(Math.random()-.5)*s}px)`;
@@ -644,15 +618,24 @@ hands.onResults((results)=>{
 
     const lm=results.multiHandLandmarks[0];
 
-    rasenTargetX=lm[9].x*640;
-    rasenTargetY=lm[9].y*480;
+    const palmX=
+      (lm[0].x+lm[5].x+lm[9].x+lm[13].x)/4;
 
-    rasenX+=(rasenTargetX-rasenX)*0.10;
-    rasenY+=(rasenTargetY-rasenY)*0.10;
+    const palmY=
+      (lm[0].y+lm[5].y+lm[9].y+lm[13].y)/4;
 
-    rasenScale=Math.min(rasenScale+0.025,1.3);
+    const dx=lm[9].x-lm[0].x;
+    const dy=lm[9].y-lm[0].y;
 
-    rasenAngle+=0.08;
+    rasenTargetX=(palmX+dx*0.35)*640;
+    rasenTargetY=(palmY+dy*0.35)*480;
+
+    rasenX+=(rasenTargetX-rasenX)*0.20;
+    rasenY+=(rasenTargetY-rasenY)*0.20;
+
+    rasenScale=Math.min(rasenScale+0.03,1.3);
+
+    rasenAngle+=0.09;
 
     drawSkeleton(lm,0.15);
 
@@ -684,19 +667,6 @@ hands.onResults((results)=>{
   const handedness=results.multiHandedness[0].label;
 
   drawSkeleton(lm,1);
-
-  const wristX=lm[0].x*640;
-  const wristY=lm[0].y*480;
-
-  if(comboIndex>0 && Math.random()>0.5){
-
-    spawnChakraParticle(
-      wristX+(Math.random()-.5)*60,
-      wristY+(Math.random()-.5)*60
-    );
-  }
-
-  drawChakraParticles();
 
   const sign=detectSign(lm,handedness);
 
@@ -734,9 +704,18 @@ hands.onResults((results)=>{
 
       if(comboIndex>=COMBO.length){
 
+        const palmX=
+          (lm[0].x+lm[5].x+lm[9].x+lm[13].x)/4;
+
+        const palmY=
+          (lm[0].y+lm[5].y+lm[9].y+lm[13].y)/4;
+
+        const dx=lm[9].x-lm[0].x;
+        const dy=lm[9].y-lm[0].y;
+
         activateJutsu(
-          lm[9].x*640,
-          lm[9].y*480
+          (palmX+dx*0.35)*640,
+          (palmY+dy*0.35)*480
         );
       }
     }
