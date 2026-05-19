@@ -1,765 +1,783 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Naruto Hand Sign Detector</title>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Naruto Jutsu · Rasengan + Shadow Clone (Same Level)</title>
   <style>
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
-    body{
-      background:#050505;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      font-family:Arial,sans-serif;
-      color:white;
-      min-height:100vh;
-      overflow:hidden;
+    body {
+      background: #050505;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: white;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 20px;
     }
 
-    h1{
-      margin:18px 0 10px;
-      color:#ff6b00;
-      font-size:26px;
-      text-shadow:0 0 12px #ff6b00aa;
-      letter-spacing:1px;
+    h1 {
+      margin: 18px 0 5px;
+      color: #ff6b00;
+      font-size: 26px;
+      text-shadow: 0 0 12px #ff6b00aa;
+      letter-spacing: 1px;
     }
 
-    #container{
-      position:relative;
-      width:640px;
-      height:480px;
+    .subtitle {
+      font-size: 12px;
+      color: #ffaa55;
+      margin-bottom: 10px;
     }
 
-    video{
-      width:640px;
-      height:480px;
-      border:3px solid #ff6b00;
-      border-radius:12px;
-      transform:scaleX(-1);
-      display:block;
+    #container {
+      position: relative;
+      width: 640px;
+      height: 480px;
     }
 
-    canvas{
-      position:absolute;
-      top:0;
-      left:0;
-      width:640px;
-      height:480px;
-      transform:scaleX(-1);
-      border-radius:12px;
+    video {
+      width: 640px;
+      height: 480px;
+      border: 3px solid #ff6b00;
+      border-radius: 12px;
+      transform: scaleX(-1);
+      display: block;
     }
 
-    #flash{
-      position:absolute;
-      top:0;
-      left:0;
-      width:640px;
-      height:480px;
-      border-radius:12px;
-      background:radial-gradient(circle,#ffffff,#88eeff,transparent);
-      opacity:0;
-      pointer-events:none;
-      transition:opacity 0.05s;
-      z-index:10;
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 640px;
+      height: 480px;
+      transform: scaleX(-1);
+      border-radius: 12px;
+      pointer-events: none;
     }
 
-    #sign-display{
-      margin-top:14px;
-      font-size:30px;
-      font-weight:bold;
-      color:#ff6b00;
-      text-shadow:0 0 16px #ff6b00aa;
-      min-height:40px;
+    #flash {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 640px;
+      height: 480px;
+      border-radius: 12px;
+      background: radial-gradient(circle, #ffffff, #88eeff, transparent);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.05s;
+      z-index: 10;
     }
 
-    #combo-display{
-      margin-top:10px;
-      font-size:20px;
-      min-height:32px;
-      display:flex;
-      gap:6px;
-      align-items:center;
+    .info-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 12px;
+      margin-bottom: 8px;
     }
 
-    .csign{
-      transition:all 0.3s;
-      font-size:22px;
+    .panel {
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      border-radius: 40px;
+      padding: 6px 18px;
+      border: 1px solid #ffaa33;
     }
 
-    .csign.done{
-      filter:drop-shadow(0 0 6px #00ff88);
-      transform:scale(1.2);
+    .confidence-area {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
     }
 
-    .csign.next{
-      animation:blink 0.5s infinite alternate;
+    .conf-label {
+      font-size: 14px;
+      color: #FFD966;
     }
 
-    .csign.todo{
-      opacity:0.25;
+    .conf-value {
+      font-family: monospace;
+      font-size: 22px;
+      font-weight: bold;
+      color: #ff8c00;
     }
 
-    .arrow{
-      color:#444;
-      font-size:14px;
+    #combo-display {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 22px;
     }
 
-    @keyframes blink{
-      from{opacity:0.4}
-      to{opacity:1}
+    .csign {
+      transition: all 0.3s;
+      font-size: 24px;
     }
 
-    #jutsu-name{
-      margin-top:10px;
-      font-size:0px;
-      color:#00cfff;
-      text-shadow:0 0 20px #00cfff,0 0 40px #00cfff;
-      font-style:italic;
-      font-weight:bold;
-      letter-spacing:3px;
-      transition:font-size 0.4s ease,opacity 0.4s;
-      opacity:0;
-      min-height:36px;
+    .csign.done {
+      filter: drop-shadow(0 0 6px #00ff88);
+      transform: scale(1.2);
     }
 
-    #jutsu-name.show{
-      font-size:26px;
-      opacity:1;
+    .csign.next {
+      animation: blink 0.5s infinite alternate;
     }
 
-    #status{
-      margin-top:6px;
-      font-size:13px;
-      color:#666;
-      min-height:20px;
+    .csign.todo {
+      opacity: 0.25;
     }
 
-    #hold-bar-wrap{
-      margin-top:10px;
-      width:200px;
-      height:6px;
-      background:#222;
-      border-radius:3px;
-      overflow:hidden;
-      opacity:0;
-      transition:opacity 0.2s;
+    .arrow {
+      color: #444;
+      font-size: 16px;
     }
 
-    #hold-bar{
-      height:100%;
-      width:0%;
-      background:linear-gradient(90deg,#ff6b00,#ffcc00);
-      border-radius:3px;
-      transition:width 0.05s linear;
+    @keyframes blink {
+      from { opacity: 0.4; }
+      to { opacity: 1; }
+    }
+
+    #hold-bar-wrap, #clone-hold-wrap {
+      width: 150px;
+      height: 6px;
+      background: #222;
+      border-radius: 3px;
+      overflow: hidden;
+      transition: opacity 0.2s;
+    }
+
+    #hold-bar, #clone-hold-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff6b00, #ffcc00);
+      border-radius: 3px;
+      transition: width 0.05s linear;
+    }
+
+    #jutsu-name {
+      margin-top: 6px;
+      font-size: 0px;
+      color: #00cfff;
+      text-shadow: 0 0 20px #00cfff, 0 0 40px #00cfff;
+      font-style: italic;
+      font-weight: bold;
+      letter-spacing: 3px;
+      transition: font-size 0.4s ease, opacity 0.4s;
+      opacity: 0;
+      min-height: 36px;
+    }
+
+    #jutsu-name.show {
+      font-size: 26px;
+      opacity: 1;
+    }
+
+    #sign-display {
+      font-size: 22px;
+      font-weight: bold;
+      color: #ffaa33;
+      margin-top: 8px;
+      min-height: 40px;
+    }
+
+    .status-text {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 5px;
+    }
+
+    button {
+      background: #ff8c00;
+      border: none;
+      color: black;
+      font-weight: bold;
+      padding: 5px 16px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-left: 12px;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #ffaa33;
+      transform: scale(1.02);
+    }
+
+    .reset-tip {
+      font-size: 11px;
+      color: #888;
+      margin-top: 8px;
+    }
+
+    .clone-hold-area {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
     }
   </style>
 </head>
-
 <body>
 
-<h1>🥷 Naruto Hand Sign Detector</h1>
+<h1>🥷 NARUTO JUTSU LAB</h1>
+<div class="subtitle">🐍🐦🖐️ Rasengan Combo  |  🐶 Dog Sign Hold 1.5s → Shadow Clone (same level)</div>
 
 <div id="container">
-  <video id="video" autoplay playsinline></video>
+  <video id="video" autoplay playsinline muted></video>
   <canvas id="canvas"></canvas>
   <div id="flash"></div>
 </div>
 
-<div id="sign-display">Waiting for hand...</div>
-
-<div id="combo-display"></div>
-
-<div id="hold-bar-wrap">
-  <div id="hold-bar"></div>
+<div class="info-row">
+  <div class="panel">
+    <div class="confidence-area">
+      <span class="conf-label">🐶 CLONE (Dog Sign Hold)</span>
+      <span id="cloneConf" class="conf-value">0%</span>
+    </div>
+    <div class="clone-hold-area">
+      <div id="clone-hold-wrap" style="opacity:0;"><div id="clone-hold-bar"></div></div>
+      <span style="font-size:10px;">hold 1.5s</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div id="combo-display"></div>
+    <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+      <div id="hold-bar-wrap" style="opacity:0;"><div id="hold-bar"></div></div>
+      <span style="font-size: 10px;">hold to confirm</span>
+    </div>
+  </div>
 </div>
 
-<div id="jutsu-name">⚡ Rasengan!</div>
+<div id="sign-display">🤚 Show right hand</div>
+<div id="jutsu-name">🌀 RASENGAN!</div>
+<div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 6px;">
+  <button id="resetClonesBtn">✖ Reset Clones</button>
+  <span id="statusMsg" class="status-text">Loading...</span>
+</div>
+<div class="reset-tip">💡 Shadow Clone: show 🐶 Dog sign (index+middle up, others down) with your RIGHT hand and hold for 1.5 seconds → 4 clones appear at same level behind you!</div>
 
-<div id="status">Loading...</div>
-
+<!-- MediaPipe Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
 
 <script>
+  (function(){
+    // ----- DOM elements -----
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const signDisplay = document.getElementById('sign-display');
+    const comboDisplay = document.getElementById('combo-display');
+    const jutsuNameEl = document.getElementById('jutsu-name');
+    const statusEl = document.getElementById('statusMsg');
+    const holdBarWrap = document.getElementById('hold-bar-wrap');
+    const holdBar = document.getElementById('hold-bar');
+    const flashEl = document.getElementById('flash');
+    const cloneConfSpan = document.getElementById('cloneConf');
+    const resetClonesBtn = document.getElementById('resetClonesBtn');
+    const cloneHoldWrap = document.getElementById('clone-hold-wrap');
+    const cloneHoldBar = document.getElementById('clone-hold-bar');
 
-const video=document.getElementById('video');
-const canvas=document.getElementById('canvas');
-const ctx=canvas.getContext('2d');
+    canvas.width = 640;
+    canvas.height = 480;
 
-const signDisplay=document.getElementById('sign-display');
-const comboDisplay=document.getElementById('combo-display');
-const jutsuNameEl=document.getElementById('jutsu-name');
-const statusEl=document.getElementById('status');
+    // ---------- RASENGAN COMBO SYSTEM (original) ----------
+    const COMBO = ['🐍 Snake', '🐦 Bird', '🖐️ Tiger'];
+    let comboIndex = 0;
+    let lastSign = '';
+    let holdStart = null;
+    const HOLD_MS = 150;
+    let jutsuActive = false;
 
-const holdBarWrap=document.getElementById('hold-bar-wrap');
-const holdBar=document.getElementById('hold-bar');
+    let rasenX = 320, rasenY = 240;
+    let rasenTargetX = 320, rasenTargetY = 240;
+    let rasenAngle = 0, rasenScale = 0;
+    let shakeFrames = 0;
+    let time = 0;
 
-const flashEl=document.getElementById('flash');
+    // ---------- CLONE SYSTEM (Dog sign hold 1.5s, same Y level) ----------
+    let clonesTriggered = false;
+    let cloneStartTime = null;
+    let maskImage = null;
+    let cloneHoldTimer = null;
+    let cloneHoldActive = false;
+    let cloneHoldProgress = 0;
+    
+    const CLONE_HOLD_REQUIRED = 1500; // 1.5 seconds
+    
+    // Clones positioned at same vertical level (y: 0) but different horizontal offsets.
+    // "Behind" effect is created by drawing them first, and slightly reduced scale.
+    const clones = [
+      { x: -70, y: 0, scale: 0.72, delay: 800,  smokeSpawned: false },   // left rear
+      { x: 70,  y: 0, scale: 0.72, delay: 950,  smokeSpawned: false },   // right rear
+      { x: -140, y: 0, scale: 0.62, delay: 1150, smokeSpawned: false },  // far left
+      { x: 140,  y: 0, scale: 0.62, delay: 1250, smokeSpawned: false }    // far right
+    ];
+    const activeSmokes = [];
+    const SMOKE_FRAMES = [];
 
-canvas.width=640;
-canvas.height=480;
-
-const COMBO=['🐍 Snake','🐦 Bird','🖐️ Tiger'];
-
-let comboIndex=0;
-let lastSign='';
-let holdStart=null;
-
-const HOLD_MS=150;
-
-let jutsuActive=false;
-
-let rasenX=320;
-let rasenY=240;
-
-let rasenTargetX=320;
-let rasenTargetY=240;
-
-let rasenAngle=0;
-let rasenScale=0;
-
-let shakeFrames=0;
-
-let time=0;
-
-function triggerFlash(){
-
-  flashEl.style.opacity='1';
-
-  setTimeout(()=>flashEl.style.opacity='0.5',60);
-  setTimeout(()=>flashEl.style.opacity='0',400);
-}
-
-function triggerShake(){
-  shakeFrames=20;
-}
-
-function updateComboUI(){
-
-  comboDisplay.innerHTML=COMBO.map((sign,i)=>{
-
-    const em=sign.split(' ')[0];
-
-    let cls=
-      i<comboIndex ? 'done' :
-      i===comboIndex ? 'next' :
-      'todo';
-
-    let html=`<span class="csign ${cls}">${em}</span>`;
-
-    if(i<COMBO.length-1){
-      html+=`<span class="arrow">›</span>`;
+    // generate smoke frames
+    for (let i = 0; i < 5; i++) {
+      const sz = 70 + i * 4;
+      const off = document.createElement('canvas');
+      off.width = sz; off.height = sz;
+      const octx = off.getContext('2d');
+      const center = sz/2;
+      const grad = octx.createRadialGradient(center, center, 5, center, center, center);
+      grad.addColorStop(0, `rgba(140, 100, 70, ${0.9 - i*0.1})`);
+      grad.addColorStop(0.4, `rgba(100, 70, 45, 0.7)`);
+      grad.addColorStop(0.7, `rgba(70, 45, 25, 0.4)`);
+      grad.addColorStop(1, 'rgba(30,20,5,0)');
+      octx.fillStyle = grad;
+      octx.fillRect(0, 0, sz, sz);
+      SMOKE_FRAMES.push(off);
     }
 
-    return html;
-
-  }).join('');
-}
-
-function activateJutsu(x,y){
-
-  jutsuActive=true;
-
-  jutsuNameEl.classList.add('show');
-
-  rasenScale=0;
-
-  triggerFlash();
-  triggerShake();
-
-  statusEl.textContent='JUTSU ACTIVE — remove hand to cancel';
-}
-
-function deactivateJutsu(){
-
-  jutsuActive=false;
-
-  jutsuNameEl.classList.remove('show');
-
-  rasenScale=0;
-
-  comboIndex=0;
-
-  updateComboUI();
-
-  statusEl.textContent='Jutsu cancelled — show hand to restart';
-}
-
-function drawRasengan(x,y,angle,scale){
-
-  if(scale<=0) return;
-
-  time++;
-
-  const r=58*Math.min(scale,1);
-
-  const pulse=1+Math.sin(time*0.12)*0.025;
-
-  ctx.save();
-
-  ctx.translate(x,y);
-
-  ctx.globalAlpha=Math.min(scale,1);
-
-  // NATURAL OUTER AURA
-
-  const outerAura=ctx.createRadialGradient(
-    0,0,r*0.2,
-    0,0,r*3.4
-  );
-
-  outerAura.addColorStop(0,'rgba(150,255,255,0.04)');
-  outerAura.addColorStop(0.25,'rgba(0,210,255,0.08)');
-  outerAura.addColorStop(0.55,'rgba(0,110,255,0.05)');
-  outerAura.addColorStop(1,'rgba(0,0,255,0)');
-
-  ctx.beginPath();
-
-  ctx.arc(0,0,r*3.4*pulse,0,Math.PI*2);
-
-  ctx.fillStyle=outerAura;
-
-  ctx.fill();
-
-  // SOFT RANDOM ENERGY FOG
-
-  for(let i=0;i<28;i++){
-
-    const a=Math.random()*Math.PI*2;
-
-    const dist=Math.random()*r*1.5;
-
-    const size=Math.random()*r*0.9;
-
-    const px=Math.cos(a)*dist;
-    const py=Math.sin(a)*dist;
-
-    const fog=ctx.createRadialGradient(
-      px,py,0,
-      px,py,size
-    );
-
-    fog.addColorStop(0,'rgba(120,220,255,0.04)');
-    fog.addColorStop(1,'rgba(0,0,255,0)');
-
-    ctx.beginPath();
-
-    ctx.arc(px,py,size,0,Math.PI*2);
-
-    ctx.fillStyle=fog;
-
-    ctx.fill();
-  }
-
-  // MAIN BALL
-
-  const sphere=ctx.createRadialGradient(
-    -r*0.2,
-    -r*0.2,
-    r*0.03,
-    0,
-    0,
-    r
-  );
-
-  sphere.addColorStop(0,'rgba(255,255,255,1)');
-  sphere.addColorStop(0.10,'rgba(210,250,255,1)');
-  sphere.addColorStop(0.30,'rgba(90,235,255,0.92)');
-  sphere.addColorStop(0.58,'rgba(0,155,255,0.72)');
-  sphere.addColorStop(0.85,'rgba(0,70,220,0.34)');
-  sphere.addColorStop(1,'rgba(0,40,180,0)');
-
-  ctx.beginPath();
-
-  ctx.arc(
-    0,
-    0,
-    r*pulse,
-    0,
-    Math.PI*2
-  );
-
-  ctx.fillStyle=sphere;
-
-  ctx.shadowColor='#00cfff';
-  ctx.shadowBlur=45;
-
-  ctx.fill();
-
-  // RANDOM WHITE SCRIBBLE LINES
-
-  ctx.save();
-
-  ctx.rotate(angle*0.8);
-
-  for(let i=0;i<170;i++){
-
-    const startA=Math.random()*Math.PI*2;
-    const endA=startA+(Math.random()-0.5)*2;
-
-    const startR=Math.random()*r*0.92;
-    const endR=Math.random()*r*0.92;
-
-    const sx=Math.cos(startA)*startR;
-    const sy=Math.sin(startA)*startR;
-
-    const ex=Math.cos(endA)*endR;
-    const ey=Math.sin(endA)*endR;
-
-    const c1x=(sx+ex)/2+(Math.random()-0.5)*25;
-    const c1y=(sy+ey)/2+(Math.random()-0.5)*25;
-
-    ctx.beginPath();
-
-    ctx.moveTo(sx,sy);
-
-    ctx.quadraticCurveTo(
-      c1x,
-      c1y,
-      ex,
-      ey
-    );
-
-    ctx.strokeStyle=`rgba(255,255,255,${
-      0.18+Math.random()*0.25
-    })`;
-
-    ctx.lineWidth=0.7+Math.random()*1.1;
-
-    ctx.shadowColor='rgba(255,255,255,0.7)';
-    ctx.shadowBlur=5;
-
-    ctx.stroke();
-  }
-
-  ctx.restore();
-
-  // INNER ENERGY SWIRL
-
-  ctx.save();
-
-  ctx.rotate(-angle*1.5);
-
-  for(let i=0;i<12;i++){
-
-    ctx.rotate(Math.PI*2/12);
-
-    ctx.beginPath();
-
-    ctx.arc(
-      0,
-      0,
-      r*0.46,
-      -0.7,
-      0.7
-    );
-
-    ctx.strokeStyle='rgba(150,255,255,0.12)';
-
-    ctx.lineWidth=1.3;
-
-    ctx.shadowColor='#88ffff';
-    ctx.shadowBlur=8;
-
-    ctx.stroke();
-  }
-
-  ctx.restore();
-
-  // BRIGHT CORE
-
-  const core=ctx.createRadialGradient(
-    0,
-    0,
-    0,
-    0,
-    0,
-    r*0.30
-  );
-
-  core.addColorStop(0,'rgba(255,255,255,1)');
-  core.addColorStop(0.4,'rgba(220,255,255,0.95)');
-  core.addColorStop(0.8,'rgba(120,255,255,0.35)');
-  core.addColorStop(1,'rgba(0,255,255,0)');
-
-  ctx.beginPath();
-
-  ctx.arc(
-    0,
-    0,
-    r*0.30,
-    0,
-    Math.PI*2
-  );
-
-  ctx.fillStyle=core;
-
-  ctx.shadowColor='white';
-  ctx.shadowBlur=30;
-
-  ctx.fill();
-
-  ctx.restore();
-}
-
-function drawSkeleton(lm,alpha){
-
-  ctx.globalAlpha=alpha;
-
-  for(const conn of HAND_CONNECTIONS){
-
-    const s=lm[conn[0]];
-    const e=lm[conn[1]];
-
-    ctx.beginPath();
-
-    ctx.moveTo(s.x*640,s.y*480);
-    ctx.lineTo(e.x*640,e.y*480);
-
-    ctx.strokeStyle='#00ff88';
-
-    ctx.lineWidth=2;
-
-    ctx.shadowColor='#00ff88';
-    ctx.shadowBlur=4;
-
-    ctx.stroke();
-  }
-
-  ctx.shadowBlur=0;
-
-  for(const l of lm){
-
-    ctx.beginPath();
-
-    ctx.arc(l.x*640,l.y*480,5,0,Math.PI*2);
-
-    ctx.fillStyle='#ff3333';
-
-    ctx.shadowColor='#ff0000';
-    ctx.shadowBlur=6;
-
-    ctx.fill();
-  }
-
-  ctx.shadowBlur=0;
-  ctx.globalAlpha=1;
-}
-
-function isFingerUp(lm,tip,pip){
-  return lm[tip].y<lm[pip].y-0.03;
-}
-
-function isThumbUp(lm,handedness){
-
-  return handedness==='Right'
-    ? lm[4].x<lm[3].x-0.02
-    : lm[4].x>lm[3].x+0.02;
-}
-
-function detectSign(lm,handedness){
-
-  const thumb=isThumbUp(lm,handedness),
-        index=isFingerUp(lm,8,6),
-        middle=isFingerUp(lm,12,10),
-        ring=isFingerUp(lm,16,14),
-        pinky=isFingerUp(lm,20,18);
-
-  if(!thumb&&!index&&!middle&&!ring&&!pinky) return '🐍 Snake';
-  if(thumb&&index&&middle&&ring&&pinky) return '🖐️ Tiger';
-  if(!thumb&&!index&&!middle&&!ring&&pinky) return '🐦 Bird';
-
-  return '🤔 Keep trying...';
-}
-
-const hands=new Hands({
-  locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
-});
-
-hands.setOptions({
-  maxNumHands:1,
-  modelComplexity:1,
-  minDetectionConfidence:0.7,
-  minTrackingConfidence:0.7
-});
-
-hands.onResults((results)=>{
-
-  if(shakeFrames>0){
-
-    shakeFrames--;
-
-    const s=(shakeFrames/20)*6;
-
-    canvas.style.transform=
-      `scaleX(-1) translate(${(Math.random()-.5)*s}px,${(Math.random()-.5)*s}px)`;
-
-  }else{
-    canvas.style.transform='scaleX(-1)';
-  }
-
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  const handFound=
-    results.multiHandLandmarks &&
-    results.multiHandLandmarks.length>0;
-
-  if(jutsuActive){
-
-    if(!handFound){
-      deactivateJutsu();
-      return;
+    function spawnSmoke(x, y, scaleFact = 0.8) {
+      activeSmokes.push({
+        x, y, scale: scaleFact * 0.85,
+        start: performance.now(),
+        duration: 720,
+        frames: SMOKE_FRAMES
+      });
     }
 
-    const lm=results.multiHandLandmarks[0];
-
-    const palmX=
-      (lm[0].x+lm[5].x+lm[9].x+lm[13].x)/4;
-
-    const palmY=
-      (lm[0].y+lm[5].y+lm[9].y+lm[13].y)/4;
-
-    const dx=lm[9].x-lm[0].x;
-    const dy=lm[9].y-lm[0].y;
-
-    rasenTargetX=(palmX+dx*0.35)*640;
-    rasenTargetY=(palmY+dy*0.35)*480;
-
-    rasenX+=(rasenTargetX-rasenX)*0.20;
-    rasenY+=(rasenTargetY-rasenY)*0.20;
-
-    rasenScale=Math.min(rasenScale+0.03,1.3);
-
-    rasenAngle+=0.09;
-
-    drawSkeleton(lm,0.15);
-
-    drawRasengan(rasenX,rasenY,rasenAngle,rasenScale);
-
-    signDisplay.textContent='';
-
-    statusEl.textContent='JUTSU ACTIVE — remove hand to cancel';
-
-    return;
-  }
-
-  if(!handFound){
-
-    signDisplay.textContent='Waiting for hand...';
-
-    statusEl.textContent='Show your hand to the camera';
-
-    holdBarWrap.style.opacity='0';
-
-    holdStart=null;
-    lastSign='';
-
-    return;
-  }
-
-  const lm=results.multiHandLandmarks[0];
-
-  const handedness=results.multiHandedness[0].label;
-
-  drawSkeleton(lm,1);
-
-  const sign=detectSign(lm,handedness);
-
-  signDisplay.textContent=sign;
-
-  statusEl.textContent=`Hand: ${handedness}`;
-
-  if(!sign.includes('Keep trying') && sign===COMBO[comboIndex]){
-
-    if(sign!==lastSign){
-
-      holdStart=Date.now();
-
-      lastSign=sign;
-
-      holdBarWrap.style.opacity='1';
+    function drawSmokes() {
+      const now = performance.now();
+      for (let i=activeSmokes.length-1; i>=0; i--) {
+        const s = activeSmokes[i];
+        const elapsed = now - s.start;
+        let progress = Math.min(1, elapsed / s.duration);
+        const frameIdx = Math.floor(progress * s.frames.length);
+        if (frameIdx >= s.frames.length) { activeSmokes.splice(i,1); continue; }
+        const img = s.frames[frameIdx];
+        ctx.save();
+        ctx.globalAlpha = 1 - progress * 0.8;
+        ctx.translate(s.x, s.y);
+        ctx.scale(s.scale, s.scale);
+        ctx.drawImage(img, -img.width/2, -img.height/2);
+        ctx.restore();
+      }
     }
 
-    const elapsed=Date.now()-holdStart;
+    function updateCloneSmokes(startTime) {
+      if (!clonesTriggered || !startTime) return;
+      const now = performance.now();
+      clones.forEach(cl => {
+        if (!cl.smokeSpawned && (now - startTime >= cl.delay)) {
+          cl.smokeSpawned = true;
+          const centerX = (canvas.width/2) + cl.x;
+          const centerY = (canvas.height/2) + cl.y; // same level, no offset
+          spawnSmoke(centerX-8, centerY-5, cl.scale * 0.8);
+          spawnSmoke(centerX+12, centerY+2, cl.scale * 0.85);
+        }
+      });
+    }
 
-    holdBar.style.width=
-      Math.min((elapsed/HOLD_MS)*100,100)+'%';
+    function resetClones() {
+      clonesTriggered = false;
+      cloneStartTime = null;
+      clones.forEach(cl => cl.smokeSpawned = false);
+      activeSmokes.length = 0;
+      // reset hold UI
+      cloneHoldActive = false;
+      cloneHoldProgress = 0;
+      cloneHoldWrap.style.opacity = '0';
+      cloneHoldBar.style.width = '0%';
+      if (cloneHoldTimer) clearInterval(cloneHoldTimer);
+      cloneHoldTimer = null;
+      statusEl.textContent = 'Clones reset. Show Dog sign for 1.5s to summon again.';
+      setTimeout(() => {
+        if(statusEl.textContent.includes('reset')) statusEl.textContent = 'Camera ready';
+      }, 2000);
+    }
 
-    if(elapsed>=HOLD_MS){
+    // Selfie Segmentation
+    const selfieSeg = new SelfieSegmentation({
+      locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${f}`
+    });
+    selfieSeg.setOptions({ modelSelection: 1 });
+    selfieSeg.onResults(res => { maskImage = res.segmentationMask; });
 
-      holdStart=null;
+    function extractPersonCutout() {
+      if (!maskImage || canvas.width === 0) return null;
+      const off = document.createElement('canvas');
+      off.width = canvas.width;
+      off.height = canvas.height;
+      const tmpCtx = off.getContext('2d');
+      tmpCtx.drawImage(maskImage, 0, 0, canvas.width, canvas.height);
+      tmpCtx.globalCompositeOperation = 'source-in';
+      tmpCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      tmpCtx.globalCompositeOperation = 'source-over';
+      return off;
+    }
 
-      holdBar.style.width='0%';
+    function drawClonesAndLeader(personCanvas, startTime) {
+      if (!personCanvas) return;
+      const now = performance.now();
+      // draw clones (behind) - same Y level
+      clones.forEach(cl => {
+        if (now - startTime >= cl.delay) {
+          ctx.save();
+          const offX = cl.x + canvas.width/2;
+          const offY = cl.y + canvas.height/2;  // same vertical level as main
+          ctx.translate(offX, offY);
+          ctx.scale(cl.scale, cl.scale);
+          ctx.drawImage(personCanvas, -personCanvas.width/2, -personCanvas.height/2);
+          ctx.restore();
+        }
+      });
+      // draw main person on top
+      ctx.drawImage(personCanvas, 0, 0, canvas.width, canvas.height);
+    }
 
-      holdBarWrap.style.opacity='0';
+    // ---------- Hand sign detection helpers (original) ----------
+    function isFingerUp(lm, tip, pip) { return lm[tip].y < lm[pip].y - 0.03; }
+    function isThumbUp(lm, handedness) {
+      return handedness === 'Right' ? lm[4].x < lm[3].x - 0.02 : lm[4].x > lm[3].x + 0.02;
+    }
+    function detectSign(lm, handedness) {
+      const thumb = isThumbUp(lm, handedness),
+            index = isFingerUp(lm, 8, 6),
+            middle = isFingerUp(lm, 12, 10),
+            ring = isFingerUp(lm, 16, 14),
+            pinky = isFingerUp(lm, 20, 18);
+      if (!thumb && !index && !middle && !ring && !pinky) return '🐍 Snake';
+      if (thumb && index && middle && ring && pinky) return '🖐️ Tiger';
+      if (!thumb && !index && !middle && !ring && pinky) return '🐦 Bird';
+      if (!thumb && index && middle && !ring && !pinky) return '🐶 Dog';
+      if (thumb && !index && !middle && !ring && !pinky) return '🐂 Ox';
+      return '🤔 Keep trying...';
+    }
 
-      comboIndex++;
-
+    // ---------- Rasengan drawing and effects ----------
+    function triggerFlash() {
+      flashEl.style.opacity = '1';
+      setTimeout(() => flashEl.style.opacity = '0.5', 60);
+      setTimeout(() => flashEl.style.opacity = '0', 400);
+    }
+    function triggerShake() { shakeFrames = 20; }
+    function updateComboUI() {
+      comboDisplay.innerHTML = COMBO.map((sign, i) => {
+        const em = sign.split(' ')[0];
+        let cls = i < comboIndex ? 'done' : (i === comboIndex ? 'next' : 'todo');
+        let html = `<span class="csign ${cls}">${em}</span>`;
+        if (i < COMBO.length-1) html += `<span class="arrow">›</span>`;
+        return html;
+      }).join('');
+    }
+    function activateJutsu(x, y) {
+      if (jutsuActive) return;
+      jutsuActive = true;
+      jutsuNameEl.classList.add('show');
+      rasenScale = 0;
+      triggerFlash();
+      triggerShake();
+      statusEl.textContent = '🌀 RASENGAN ACTIVE — remove hand to cancel';
+    }
+    function deactivateJutsu() {
+      jutsuActive = false;
+      jutsuNameEl.classList.remove('show');
+      rasenScale = 0;
+      comboIndex = 0;
       updateComboUI();
-
-      if(comboIndex>=COMBO.length){
-
-        const palmX=
-          (lm[0].x+lm[5].x+lm[9].x+lm[13].x)/4;
-
-        const palmY=
-          (lm[0].y+lm[5].y+lm[9].y+lm[13].y)/4;
-
-        const dx=lm[9].x-lm[0].x;
-        const dy=lm[9].y-lm[0].y;
-
-        activateJutsu(
-          (palmX+dx*0.35)*640,
-          (palmY+dy*0.35)*480
-        );
+      statusEl.textContent = 'Rasengan cancelled — show hand to restart';
+    }
+    function drawRasengan(x, y, angle, scale) {
+      if (scale <= 0) return;
+      time++;
+      const r = 58 * Math.min(scale, 1);
+      const pulse = 1 + Math.sin(time * 0.12) * 0.025;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.globalAlpha = Math.min(scale, 1);
+      const outerAura = ctx.createRadialGradient(0,0,r*0.2, 0,0,r*3.4);
+      outerAura.addColorStop(0,'rgba(150,255,255,0.04)');
+      outerAura.addColorStop(0.25,'rgba(0,210,255,0.08)');
+      outerAura.addColorStop(0.55,'rgba(0,110,255,0.05)');
+      outerAura.addColorStop(1,'rgba(0,0,255,0)');
+      ctx.beginPath(); ctx.arc(0,0,r*3.4*pulse,0,Math.PI*2); ctx.fillStyle=outerAura; ctx.fill();
+      for(let i=0;i<28;i++){
+        const a = Math.random()*Math.PI*2;
+        const dist = Math.random()*r*1.5;
+        const size = Math.random()*r*0.9;
+        const px = Math.cos(a)*dist, py = Math.sin(a)*dist;
+        const fog = ctx.createRadialGradient(px,py,0, px,py,size);
+        fog.addColorStop(0,'rgba(120,220,255,0.04)');
+        fog.addColorStop(1,'rgba(0,0,255,0)');
+        ctx.beginPath(); ctx.arc(px,py,size,0,Math.PI*2); ctx.fillStyle=fog; ctx.fill();
       }
+      const sphere = ctx.createRadialGradient(-r*0.2,-r*0.2,r*0.03, 0,0,r);
+      sphere.addColorStop(0,'rgba(255,255,255,1)');
+      sphere.addColorStop(0.10,'rgba(210,250,255,1)');
+      sphere.addColorStop(0.30,'rgba(90,235,255,0.92)');
+      sphere.addColorStop(0.58,'rgba(0,155,255,0.72)');
+      sphere.addColorStop(0.85,'rgba(0,70,220,0.34)');
+      sphere.addColorStop(1,'rgba(0,40,180,0)');
+      ctx.beginPath(); ctx.arc(0,0,r*pulse,0,Math.PI*2); ctx.fillStyle=sphere; ctx.shadowColor='#00cfff'; ctx.shadowBlur=45; ctx.fill();
+      ctx.save(); ctx.rotate(angle*0.8);
+      for(let i=0;i<170;i++){
+        const startA = Math.random()*Math.PI*2, endA = startA+(Math.random()-0.5)*2;
+        const startR = Math.random()*r*0.92, endR = Math.random()*r*0.92;
+        const sx = Math.cos(startA)*startR, sy = Math.sin(startA)*startR;
+        const ex = Math.cos(endA)*endR, ey = Math.sin(endA)*endR;
+        const c1x = (sx+ex)/2+(Math.random()-0.5)*25, c1y = (sy+ey)/2+(Math.random()-0.5)*25;
+        ctx.beginPath(); ctx.moveTo(sx,sy); ctx.quadraticCurveTo(c1x,c1y,ex,ey);
+        ctx.strokeStyle = `rgba(255,255,255,${0.18+Math.random()*0.25})`;
+        ctx.lineWidth = 0.7+Math.random()*1.1;
+        ctx.shadowColor='rgba(255,255,255,0.7)'; ctx.shadowBlur=5;
+        ctx.stroke();
+      }
+      ctx.restore();
+      ctx.save(); ctx.rotate(-angle*1.5);
+      for(let i=0;i<12;i++){ ctx.rotate(Math.PI*2/12);
+        ctx.beginPath(); ctx.arc(0,0,r*0.46,-0.7,0.7);
+        ctx.strokeStyle='rgba(150,255,255,0.12)'; ctx.lineWidth=1.3; ctx.shadowColor='#88ffff'; ctx.shadowBlur=8; ctx.stroke();
+      }
+      ctx.restore();
+      const core = ctx.createRadialGradient(0,0,0, 0,0,r*0.30);
+      core.addColorStop(0,'rgba(255,255,255,1)');
+      core.addColorStop(0.4,'rgba(220,255,255,0.95)');
+      core.addColorStop(0.8,'rgba(120,255,255,0.35)');
+      core.addColorStop(1,'rgba(0,255,255,0)');
+      ctx.beginPath(); ctx.arc(0,0,r*0.30,0,Math.PI*2); ctx.fillStyle=core; ctx.shadowColor='white'; ctx.shadowBlur=30; ctx.fill();
+      ctx.restore();
+    }
+    function drawSkeleton(lm, alpha) {
+      ctx.globalAlpha = alpha;
+      const HAND_CONNECTIONS = [
+        [0,1],[1,2],[2,3],[3,4], [0,5],[5,6],[6,7],[7,8],
+        [0,9],[9,10],[10,11],[11,12], [0,13],[13,14],[14,15],[15,16],
+        [0,17],[17,18],[18,19],[19,20]
+      ];
+      for (const conn of HAND_CONNECTIONS) {
+        const s = lm[conn[0]], e = lm[conn[1]];
+        ctx.beginPath();
+        ctx.moveTo(s.x*640, s.y*480);
+        ctx.lineTo(e.x*640, e.y*480);
+        ctx.strokeStyle = '#00ff88';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#00ff88';
+        ctx.shadowBlur = 4;
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+      for (const l of lm) {
+        ctx.beginPath();
+        ctx.arc(l.x*640, l.y*480, 5, 0, Math.PI*2);
+        ctx.fillStyle = '#ff3333';
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
     }
 
-  }else{
+    // ---------- MediaPipe Hands ----------
+    const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+    hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
 
-    if(sign!==lastSign){
-
-      lastSign=sign;
-
-      holdStart=null;
-
-      holdBar.style.width='0%';
-
-      holdBarWrap.style.opacity='0';
-
-      if(!sign.includes('Keep trying') &&
-         sign!==COMBO[comboIndex]){
-
-        comboIndex=sign===COMBO[0] ? 1 : 0;
-
-        updateComboUI();
+    hands.onResults((results) => {
+      // screen shake
+      if (shakeFrames > 0) {
+        shakeFrames--;
+        const s = (shakeFrames / 20) * 6;
+        canvas.style.transform = `scaleX(-1) translate(${(Math.random()-.5)*s}px, ${(Math.random()-.5)*s}px)`;
+      } else {
+        canvas.style.transform = 'scaleX(-1)';
       }
-    }
-  }
-});
 
-updateComboUI();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      let personCutout = null;
+      if (maskImage) personCutout = extractPersonCutout();
+      
+      const handFound = results.multiHandLandmarks && results.multiHandLandmarks.length > 0;
+      let rightHandLandmarks = null;
+      let handednessLabel = null;
+      if (handFound) {
+        rightHandLandmarks = results.multiHandLandmarks[0];
+        handednessLabel = results.multiHandedness[0].label;
+      }
 
-const camera=new Camera(video,{
+      // ----- CLONE JUTSU: detect DOG sign on RIGHT hand, hold 1.5s -----
+      let isDogSign = false;
+      if (rightHandLandmarks && handednessLabel === 'Right') {
+        const sign = detectSign(rightHandLandmarks, 'Right');
+        isDogSign = (sign === '🐶 Dog');
+        if (isDogSign) {
+          cloneConfSpan.innerText = '🐶';
+          if (!cloneHoldActive && !clonesTriggered) {
+            cloneHoldActive = true;
+            cloneHoldProgress = 0;
+            cloneHoldWrap.style.opacity = '1';
+            const startTime = Date.now();
+            if (cloneHoldTimer) clearInterval(cloneHoldTimer);
+            cloneHoldTimer = setInterval(() => {
+              const elapsed = Date.now() - startTime;
+              const percent = Math.min(100, (elapsed / CLONE_HOLD_REQUIRED) * 100);
+              cloneHoldBar.style.width = percent + '%';
+              cloneHoldProgress = percent;
+              if (elapsed >= CLONE_HOLD_REQUIRED && !clonesTriggered) {
+                clearInterval(cloneHoldTimer);
+                cloneHoldTimer = null;
+                cloneHoldActive = false;
+                clonesTriggered = true;
+                cloneStartTime = performance.now();
+                spawnSmoke(canvas.width/2, canvas.height/2+20, 1.0);
+                spawnSmoke(canvas.width/2+30, canvas.height/2+15, 0.9);
+                statusEl.textContent = '⚡ SHADOW CLONE JUTSU! 4 clones behind you (same level)!';
+                setTimeout(() => {
+                  if(statusEl.textContent.includes('CLONE')) statusEl.textContent = 'Rasengan combo ready';
+                }, 2500);
+                cloneHoldWrap.style.opacity = '0';
+                cloneHoldBar.style.width = '0%';
+              }
+            }, 50);
+          } else if (clonesTriggered) {
+            cloneHoldWrap.style.opacity = '0';
+          }
+        } else {
+          if (cloneHoldActive) {
+            clearInterval(cloneHoldTimer);
+            cloneHoldTimer = null;
+            cloneHoldActive = false;
+            cloneHoldWrap.style.opacity = '0';
+            cloneHoldBar.style.width = '0%';
+          }
+          cloneConfSpan.innerText = '0%';
+        }
+      } else {
+        cloneConfSpan.innerText = '0%';
+        if (cloneHoldActive) {
+          clearInterval(cloneHoldTimer);
+          cloneHoldTimer = null;
+          cloneHoldActive = false;
+          cloneHoldWrap.style.opacity = '0';
+          cloneHoldBar.style.width = '0%';
+        }
+      }
 
-  onFrame:async()=>{
-    await hands.send({image:video});
-  },
+      // draw clones if triggered
+      if (clonesTriggered && cloneStartTime && personCutout) {
+        updateCloneSmokes(cloneStartTime);
+        drawClonesAndLeader(personCutout, cloneStartTime);
+        drawSmokes();
+      } else if (personCutout) {
+        ctx.drawImage(personCutout, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
 
-  width:640,
-  height:480
-});
+      // ----- RASENGAN COMBO (original, independent) -----
+      if (jutsuActive) {
+        if (!handFound) {
+          deactivateJutsu();
+        } else {
+          const lm = rightHandLandmarks;
+          const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[13].x)/4;
+          const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[13].y)/4;
+          const dx = lm[9].x - lm[0].x;
+          const dy = lm[9].y - lm[0].y;
+          rasenTargetX = (palmX + dx*0.35) * 640;
+          rasenTargetY = (palmY + dy*0.35) * 480;
+          rasenX += (rasenTargetX - rasenX) * 0.20;
+          rasenY += (rasenTargetY - rasenY) * 0.20;
+          rasenScale = Math.min(rasenScale + 0.03, 1.3);
+          rasenAngle += 0.09;
+          drawSkeleton(lm, 0.15);
+          drawRasengan(rasenX, rasenY, rasenAngle, rasenScale);
+          signDisplay.textContent = '';
+          statusEl.textContent = '🌀 RASENGAN ACTIVE — remove hand to cancel';
+          return;
+        }
+      }
 
-camera.start().then(()=>{
-  statusEl.textContent='Camera ready! Show your hand!';
-});
+      // Normal hand sign detection for combo
+      if (!handFound) {
+        signDisplay.textContent = 'Waiting for hand...';
+        statusEl.textContent = 'Show your right hand for signs';
+        holdBarWrap.style.opacity = '0';
+        holdStart = null;
+        lastSign = '';
+        return;
+      }
 
+      const lm = rightHandLandmarks;
+      const handedness = handednessLabel;
+      drawSkeleton(lm, 1);
+      const sign = detectSign(lm, handedness);
+      signDisplay.textContent = sign;
+      statusEl.textContent = `Hand: ${handedness}  |  Combo: ${COMBO[comboIndex] || 'done'}`;
+
+      if (!sign.includes('Keep trying') && sign === COMBO[comboIndex]) {
+        if (sign !== lastSign) {
+          holdStart = Date.now();
+          lastSign = sign;
+          holdBarWrap.style.opacity = '1';
+        }
+        const elapsed = Date.now() - holdStart;
+        holdBar.style.width = Math.min((elapsed / HOLD_MS) * 100, 100) + '%';
+        if (elapsed >= HOLD_MS) {
+          holdStart = null;
+          holdBar.style.width = '0%';
+          holdBarWrap.style.opacity = '0';
+          comboIndex++;
+          updateComboUI();
+          if (comboIndex >= COMBO.length) {
+            const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[13].x)/4;
+            const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[13].y)/4;
+            const dx = lm[9].x - lm[0].x;
+            const dy = lm[9].y - lm[0].y;
+            activateJutsu((palmX + dx*0.35)*640, (palmY + dy*0.35)*480);
+          }
+        }
+      } else {
+        if (sign !== lastSign) {
+          lastSign = sign;
+          holdStart = null;
+          holdBar.style.width = '0%';
+          holdBarWrap.style.opacity = '0';
+          if (!sign.includes('Keep trying') && sign !== COMBO[comboIndex]) {
+            comboIndex = (sign === COMBO[0]) ? 1 : 0;
+            updateComboUI();
+          }
+        }
+      }
+    });
+
+    updateComboUI();
+
+    // Camera initialization
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await selfieSeg.send({ image: video });
+        await hands.send({ image: video });
+      },
+      width: 640,
+      height: 480
+    });
+    camera.start().then(() => {
+      statusEl.textContent = 'Camera ready! Show 🐶 Dog sign with RIGHT hand and hold for 1.5s to summon clones (same level)!';
+    }).catch(e => {
+      statusEl.textContent = 'Camera error: ' + e.message;
+    });
+
+    resetClonesBtn.addEventListener('click', () => {
+      resetClones();
+    });
+  })();
 </script>
-
 </body>
 </html>
