@@ -2,166 +2,785 @@
 <html>
 <head>
   <title>Naruto Hand Sign Detector</title>
+
   <style>
-    body {
-      margin: 0;
-      background: #0a0a0a;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      font-family: Arial, sans-serif;
-      color: white;
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
     }
-    h1 {
-      margin: 20px 0 10px;
-      color: #ff6b00;
-      font-size: 28px;
-      text-shadow: 0 0 10px #ff6b00;
+
+    body{
+      background:#0a0a0a;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      font-family:Arial,sans-serif;
+      color:white;
+      min-height:100vh;
+      overflow:hidden;
     }
-    #container {
-      position: relative;
-      width: 640px;
-      height: 480px;
+
+    h1{
+      margin:18px 0 10px;
+      color:#ff6b00;
+      font-size:26px;
+      text-shadow:0 0 12px #ff6b00aa;
+      letter-spacing:1px;
     }
-    video {
-      width: 640px;
-      height: 480px;
-      border: 3px solid #ff6b00;
-      border-radius: 10px;
-      transform: scaleX(-1);
+
+    #container{
+      position:relative;
+      width:640px;
+      height:480px;
     }
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 640px;
-      height: 480px;
-      transform: scaleX(-1);
+
+    video{
+      width:640px;
+      height:480px;
+      border:3px solid #ff6b00;
+      border-radius:12px;
+      transform:scaleX(-1);
+      display:block;
     }
-    #sign-display {
-      margin-top: 20px;
-      font-size: 36px;
-      font-weight: bold;
-      color: #ff6b00;
-      text-shadow: 0 0 20px #ff6b00;
-      min-height: 50px;
+
+    canvas{
+      position:absolute;
+      top:0;
+      left:0;
+      width:640px;
+      height:480px;
+      transform:scaleX(-1);
+      border-radius:12px;
     }
-    #status {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #888;
+
+    #flash{
+      position:absolute;
+      top:0;
+      left:0;
+      width:640px;
+      height:480px;
+      border-radius:12px;
+      background:radial-gradient(circle,#aaeeff,white);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 0.05s;
+      z-index:10;
     }
+
+    #sign-display{
+      margin-top:14px;
+      font-size:30px;
+      font-weight:bold;
+      color:#ff6b00;
+      text-shadow:0 0 16px #ff6b00aa;
+      min-height:40px;
+    }
+
+    #combo-display{
+      margin-top:10px;
+      font-size:20px;
+      min-height:32px;
+      display:flex;
+      gap:6px;
+      align-items:center;
+    }
+
+    .csign{
+      transition:all 0.3s;
+      font-size:22px;
+    }
+
+    .csign.done{
+      filter:drop-shadow(0 0 6px #00ff88);
+      transform:scale(1.2);
+    }
+
+    .csign.next{
+      animation:blink 0.5s infinite alternate;
+    }
+
+    .csign.todo{
+      opacity:0.25;
+    }
+
+    .arrow{
+      color:#444;
+      font-size:14px;
+    }
+
+    @keyframes blink{
+      from{opacity:0.4}
+      to{opacity:1}
+    }
+
+    #jutsu-name{
+      margin-top:10px;
+      font-size:0px;
+      color:#00cfff;
+      text-shadow:0 0 20px #00cfff,0 0 40px #00cfff;
+      font-style:italic;
+      font-weight:bold;
+      letter-spacing:3px;
+      transition:font-size 0.4s ease,opacity 0.4s;
+      opacity:0;
+      min-height:36px;
+    }
+
+    #jutsu-name.show{
+      font-size:26px;
+      opacity:1;
+    }
+
+    #status{
+      margin-top:6px;
+      font-size:13px;
+      color:#555;
+      min-height:20px;
+    }
+
+    #hold-bar-wrap{
+      margin-top:10px;
+      width:200px;
+      height:6px;
+      background:#222;
+      border-radius:3px;
+      overflow:hidden;
+      opacity:0;
+      transition:opacity 0.2s;
+    }
+
+    #hold-bar{
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg,#ff6b00,#ffcc00);
+      border-radius:3px;
+      transition:width 0.05s linear;
+    }
+
   </style>
 </head>
+
 <body>
 
-  <h1>🥷 Naruto Hand Sign Detector</h1>
+<h1>🥷 Naruto Hand Sign Detector</h1>
 
-  <div id="container">
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
-  </div>
+<div id="container">
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
+  <div id="flash"></div>
+</div>
 
-  <div id="sign-display">Waiting for hand...</div>
-  <div id="status">Loading hand tracker...</div>
+<div id="sign-display">Waiting for hand...</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<div id="combo-display"></div>
 
-  <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const signDisplay = document.getElementById('sign-display');
-    const status = document.getElementById('status');
+<div id="hold-bar-wrap">
+  <div id="hold-bar"></div>
+</div>
 
-    canvas.width = 640;
-    canvas.height = 480;
+<div id="jutsu-name">🔵 Rasengan!</div>
 
-    const hands = new Hands({locateFile: (file) => {
-      return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-    }});
+<div id="status">Loading...</div>
 
-    hands.setOptions({
-      maxNumHands: 1,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7
+<audio id="rasengan-sound" loop>
+  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_7d5df5d7f4.mp3?filename=energy-110198.mp3" type="audio/mpeg">
+</audio>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+<script>
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const signDisplay = document.getElementById('sign-display');
+const comboDisplay = document.getElementById('combo-display');
+const jutsuNameEl = document.getElementById('jutsu-name');
+const statusEl = document.getElementById('status');
+
+const holdBarWrap = document.getElementById('hold-bar-wrap');
+const holdBar = document.getElementById('hold-bar');
+
+const flashEl = document.getElementById('flash');
+
+const rasenganSound = document.getElementById('rasengan-sound');
+
+canvas.width = 640;
+canvas.height = 480;
+
+const COMBO = ['🐍 Snake', '🐦 Bird', '🐂 Ox', '🖐️ Tiger'];
+
+let comboIndex = 0;
+let lastSign = '';
+let holdStart = null;
+
+const HOLD_MS = 700;
+
+let jutsuActive = false;
+
+let rasenX = 320;
+let rasenY = 240;
+
+let rasenTargetX = 320;
+let rasenTargetY = 240;
+
+let rasenAngle = 0;
+let rasenScale = 0;
+
+let shakeFrames = 0;
+
+let particles = [];
+let chakraParticles = [];
+
+let time = 0;
+
+function triggerFlash(){
+
+  flashEl.style.opacity='1';
+
+  setTimeout(()=>flashEl.style.opacity='0.5',60);
+  setTimeout(()=>flashEl.style.opacity='0',350);
+}
+
+function triggerShake(){
+  shakeFrames=22;
+}
+
+function spawnBurstParticles(x,y){
+
+  for(let i=0;i<80;i++){
+
+    const angle=Math.random()*Math.PI*2;
+    const speed=Math.random()*8+2;
+
+    particles.push({
+      x,
+      y,
+      vx:Math.cos(angle)*speed,
+      vy:Math.sin(angle)*speed,
+      life:1,
+      size:Math.random()*5+1,
+      color:['#ffffff','#cceeff','#88ddff','#44bbff','#00aaff'][Math.floor(Math.random()*5)]
     });
+  }
+}
 
-    hands.onResults((results) => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+function spawnWindParticle(x,y,angle){
 
-      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        const landmarks = results.multiHandLandmarks[0];
+  const spread=(Math.random()-0.5)*1.2;
+  const speed=Math.random()*5+2;
 
-        // Draw connections
-        for (const connection of HAND_CONNECTIONS) {
-          const start = landmarks[connection[0]];
-          const end = landmarks[connection[1]];
-          ctx.beginPath();
-          ctx.moveTo(start.x * 640, start.y * 480);
-          ctx.lineTo(end.x * 640, end.y * 480);
-          ctx.strokeStyle = '#00ff88';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
+  particles.push({
+    x:x+(Math.random()-0.5)*50,
+    y:y+(Math.random()-0.5)*50,
+    vx:Math.cos(angle+spread)*speed,
+    vy:Math.sin(angle+spread)*speed,
+    life:1,
+    size:Math.random()*4+1,
+    color:['rgba(255,255,255,0.9)','rgba(180,235,255,0.8)','rgba(100,200,255,0.7)'][Math.floor(Math.random()*3)]
+  });
+}
 
-        // Draw dots
-        for (const landmark of landmarks) {
-          ctx.beginPath();
-          ctx.arc(landmark.x * 640, landmark.y * 480, 5, 0, 2 * Math.PI);
-          ctx.fillStyle = '#ff0000';
-          ctx.fill();
-        }
+function spawnChakraParticle(x,y){
 
-        signDisplay.textContent = detectSign(landmarks);
-        status.textContent = 'Hand detected!';
-      } else {
-        signDisplay.textContent = 'Waiting for hand...';
-        status.textContent = 'No hand detected';
+  chakraParticles.push({
+    x,
+    y,
+    vx:(Math.random()-0.5)*3,
+    vy:(Math.random()-0.5)*3-1,
+    life:1,
+    size:Math.random()*4+2,
+    color:Math.random()>0.5 ? '#00cfff' : '#ffffff'
+  });
+}
+
+function updateComboUI(){
+
+  comboDisplay.innerHTML=COMBO.map((sign,i)=>{
+
+    const em=sign.split(' ')[0];
+
+    let cls=
+      i<comboIndex ? 'done' :
+      i===comboIndex ? 'next' :
+      'todo';
+
+    let html=`<span class="csign ${cls}">${em}</span>`;
+
+    if(i<COMBO.length-1){
+      html+=`<span class="arrow">›</span>`;
+    }
+
+    return html;
+
+  }).join('');
+}
+
+function activateJutsu(x,y){
+
+  jutsuActive=true;
+
+  jutsuNameEl.classList.add('show');
+
+  rasenScale=0;
+
+  particles=[];
+
+  triggerFlash();
+  triggerShake();
+
+  spawnBurstParticles(x,y);
+
+  rasenganSound.volume=0.5;
+  rasenganSound.play();
+
+  statusEl.textContent='JUTSU ACTIVE — remove hand to cancel';
+}
+
+function deactivateJutsu(){
+
+  jutsuActive=false;
+
+  jutsuNameEl.classList.remove('show');
+
+  rasenScale=0;
+
+  particles=[];
+
+  comboIndex=0;
+
+  updateComboUI();
+
+  rasenganSound.pause();
+  rasenganSound.currentTime=0;
+
+  statusEl.textContent='Jutsu cancelled — show hand to restart';
+}
+
+function drawRasengan(x,y,angle,scale){
+
+  if(scale<=0) return;
+
+  time++;
+
+  const r=80*Math.min(scale,1);
+
+  for(let i=0;i<5;i++){
+    spawnWindParticle(x,y,angle+Math.random()*Math.PI*2);
+  }
+
+  ctx.save();
+
+  particles=particles.filter(p=>p.life>0.02);
+
+  for(const p of particles){
+
+    p.x+=p.vx;
+    p.y+=p.vy;
+
+    p.life*=0.93;
+
+    ctx.globalAlpha=p.life;
+
+    ctx.beginPath();
+
+    ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+
+    ctx.fillStyle=p.color;
+
+    ctx.shadowColor='#66ddff';
+    ctx.shadowBlur=15;
+
+    ctx.fill();
+  }
+
+  ctx.restore();
+
+  ctx.save();
+
+  ctx.translate(x,y);
+
+  const pulse=1+Math.sin(time*0.18)*0.05;
+
+  const aura=ctx.createRadialGradient(0,0,r*0.2,0,0,r*2.2);
+
+  aura.addColorStop(0,'rgba(255,255,255,0.9)');
+  aura.addColorStop(0.2,'rgba(150,240,255,0.8)');
+  aura.addColorStop(0.5,'rgba(0,170,255,0.35)');
+  aura.addColorStop(1,'rgba(0,0,255,0)');
+
+  ctx.beginPath();
+  ctx.arc(0,0,r*2.2*pulse,0,Math.PI*2);
+
+  ctx.fillStyle=aura;
+
+  ctx.fill();
+
+  for(let layer=0;layer<5;layer++){
+
+    ctx.save();
+
+    ctx.rotate(angle*(layer%2===0 ? 1 : -1)*(layer+1)*0.8);
+
+    ctx.beginPath();
+
+    for(let i=0;i<Math.PI*2;i+=0.08){
+
+      const rr=
+        r*0.6+
+        Math.sin(i*8+time*0.18+layer)*8;
+
+      const px=Math.cos(i)*rr;
+      const py=Math.sin(i)*rr;
+
+      if(i===0){
+        ctx.moveTo(px,py);
+      }else{
+        ctx.lineTo(px,py);
       }
-    });
-
-    function detectSign(lm) {
-      const fingers = getFingerStates(lm);
-      const [thumb, index, middle, ring, pinky] = fingers;
-
-      if (!thumb && !index && !middle && !ring && !pinky)
-        return '🐍 Snake';
-      if (thumb && index && middle && ring && pinky)
-        return '🖐️ Tiger';
-      if (!thumb && index && middle && !ring && !pinky)
-        return '🐂 Ox';
-      if (!thumb && index && !middle && !ring && pinky)
-        return '🐕 Dog';
-      if (!thumb && !index && !middle && !ring && pinky)
-        return '🐦 Bird';
-
-      return '🤔 Keep trying...';
     }
 
-    function getFingerStates(lm) {
-      return [
-        lm[4].x < lm[3].x,
-        lm[8].y < lm[6].y,
-        lm[12].y < lm[10].y,
-        lm[16].y < lm[14].y,
-        lm[20].y < lm[18].y
-      ];
+    ctx.closePath();
+
+    ctx.strokeStyle=`rgba(200,245,255,${0.35-layer*0.05})`;
+
+    ctx.lineWidth=3-layer*0.3;
+
+    ctx.shadowColor='#88e5ff';
+    ctx.shadowBlur=25;
+
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  const sphere=ctx.createRadialGradient(0,0,0,0,0,r);
+
+  sphere.addColorStop(0,'rgba(255,255,255,1)');
+  sphere.addColorStop(0.1,'rgba(220,250,255,1)');
+  sphere.addColorStop(0.3,'rgba(120,235,255,1)');
+  sphere.addColorStop(0.6,'rgba(0,170,255,0.9)');
+  sphere.addColorStop(0.85,'rgba(0,80,255,0.45)');
+  sphere.addColorStop(1,'rgba(0,50,255,0)');
+
+  ctx.beginPath();
+
+  ctx.arc(0,0,r*pulse,0,Math.PI*2);
+
+  ctx.fillStyle=sphere;
+
+  ctx.shadowColor='#00ccff';
+  ctx.shadowBlur=60;
+
+  ctx.fill();
+
+  const core=ctx.createRadialGradient(0,0,0,0,0,r*0.22);
+
+  core.addColorStop(0,'rgba(255,255,255,1)');
+  core.addColorStop(0.5,'rgba(180,255,255,0.95)');
+  core.addColorStop(1,'rgba(0,200,255,0.1)');
+
+  ctx.beginPath();
+
+  ctx.arc(0,0,r*0.22,0,Math.PI*2);
+
+  ctx.fillStyle=core;
+
+  ctx.shadowColor='white';
+  ctx.shadowBlur=35;
+
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawChakraParticles(){
+
+  chakraParticles=chakraParticles.filter(p=>p.life>0.05);
+
+  for(const p of chakraParticles){
+
+    p.x+=p.vx;
+    p.y+=p.vy;
+
+    p.vy-=0.05;
+
+    p.life*=0.88;
+
+    ctx.globalAlpha=p.life*0.8;
+
+    ctx.beginPath();
+
+    ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);
+
+    ctx.fillStyle=p.color;
+
+    ctx.shadowColor=p.color;
+    ctx.shadowBlur=6;
+
+    ctx.fill();
+  }
+
+  ctx.globalAlpha=1;
+  ctx.shadowBlur=0;
+}
+
+function drawSkeleton(lm,alpha){
+
+  ctx.globalAlpha=alpha;
+
+  for(const conn of HAND_CONNECTIONS){
+
+    const s=lm[conn[0]];
+    const e=lm[conn[1]];
+
+    ctx.beginPath();
+
+    ctx.moveTo(s.x*640,s.y*480);
+    ctx.lineTo(e.x*640,e.y*480);
+
+    ctx.strokeStyle='#00ff88';
+
+    ctx.lineWidth=2;
+
+    ctx.shadowColor='#00ff88';
+    ctx.shadowBlur=4;
+
+    ctx.stroke();
+  }
+
+  ctx.shadowBlur=0;
+
+  for(const l of lm){
+
+    ctx.beginPath();
+
+    ctx.arc(l.x*640,l.y*480,5,0,Math.PI*2);
+
+    ctx.fillStyle='#ff3333';
+
+    ctx.shadowColor='#ff0000';
+    ctx.shadowBlur=6;
+
+    ctx.fill();
+  }
+
+  ctx.shadowBlur=0;
+  ctx.globalAlpha=1;
+}
+
+function isFingerUp(lm,tip,pip){
+  return lm[tip].y<lm[pip].y-0.03;
+}
+
+function isThumbUp(lm,handedness){
+
+  return handedness==='Right'
+    ? lm[4].x<lm[3].x-0.02
+    : lm[4].x>lm[3].x+0.02;
+}
+
+function detectSign(lm,handedness){
+
+  const thumb=isThumbUp(lm,handedness),
+        index=isFingerUp(lm,8,6),
+        middle=isFingerUp(lm,12,10),
+        ring=isFingerUp(lm,16,14),
+        pinky=isFingerUp(lm,20,18);
+
+  if(!thumb&&!index&&!middle&&!ring&&!pinky) return '🐍 Snake';
+  if(thumb&&index&&middle&&ring&&pinky) return '🖐️ Tiger';
+  if(!thumb&&index&&middle&&!ring&&!pinky) return '🐂 Ox';
+  if(!thumb&&index&&!middle&&!ring&&pinky) return '🐕 Dog';
+  if(!thumb&&!index&&!middle&&!ring&&pinky) return '🐦 Bird';
+  if(!thumb&&index&&middle&&ring&&!pinky) return '🐑 Ram';
+  if(thumb&&index&&!middle&&!ring&&pinky) return '🐗 Boar';
+
+  return '🤔 Keep trying...';
+}
+
+const hands=new Hands({
+  locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+});
+
+hands.setOptions({
+  maxNumHands:1,
+  modelComplexity:1,
+  minDetectionConfidence:0.7,
+  minTrackingConfidence:0.7
+});
+
+hands.onResults((results)=>{
+
+  if(shakeFrames>0){
+
+    shakeFrames--;
+
+    const s=(shakeFrames/22)*8;
+
+    canvas.style.transform=
+      `scaleX(-1) translate(${(Math.random()-.5)*s}px,${(Math.random()-.5)*s}px)`;
+
+  }else{
+    canvas.style.transform='scaleX(-1)';
+  }
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  const handFound=
+    results.multiHandLandmarks &&
+    results.multiHandLandmarks.length>0;
+
+  if(jutsuActive){
+
+    if(!handFound){
+      deactivateJutsu();
+      return;
     }
 
-    const camera = new Camera(video, {
-      onFrame: async () => {
-        await hands.send({image: video});
-      },
-      width: 640,
-      height: 480
-    });
+    const lm=results.multiHandLandmarks[0];
 
-    camera.start().then(() => {
-      status.textContent = 'Camera ready! Show your hand!';
-    });
-  </script>
+    rasenTargetX=lm[9].x*640;
+    rasenTargetY=lm[9].y*480;
+
+    rasenX+=(rasenTargetX-rasenX)*0.10;
+    rasenY+=(rasenTargetY-rasenY)*0.10;
+
+    rasenScale=Math.min(rasenScale+0.025,1.3);
+
+    rasenAngle+=0.08;
+
+    drawSkeleton(lm,0.15);
+
+    drawRasengan(rasenX,rasenY,rasenAngle,rasenScale);
+
+    signDisplay.textContent='';
+
+    statusEl.textContent='JUTSU ACTIVE — remove hand to cancel';
+
+    return;
+  }
+
+  if(!handFound){
+
+    signDisplay.textContent='Waiting for hand...';
+
+    statusEl.textContent='Show your hand to the camera';
+
+    holdBarWrap.style.opacity='0';
+
+    holdStart=null;
+    lastSign='';
+
+    return;
+  }
+
+  const lm=results.multiHandLandmarks[0];
+
+  const handedness=results.multiHandedness[0].label;
+
+  drawSkeleton(lm,1);
+
+  const wristX=lm[0].x*640;
+  const wristY=lm[0].y*480;
+
+  if(comboIndex>0 && Math.random()>0.5){
+
+    spawnChakraParticle(
+      wristX+(Math.random()-.5)*60,
+      wristY+(Math.random()-.5)*60
+    );
+  }
+
+  drawChakraParticles();
+
+  const sign=detectSign(lm,handedness);
+
+  signDisplay.textContent=sign;
+
+  statusEl.textContent=`Hand: ${handedness}`;
+
+  if(!sign.includes('Keep trying') && sign===COMBO[comboIndex]){
+
+    if(sign!==lastSign){
+
+      holdStart=Date.now();
+
+      lastSign=sign;
+
+      holdBarWrap.style.opacity='1';
+    }
+
+    const elapsed=Date.now()-holdStart;
+
+    holdBar.style.width=
+      Math.min((elapsed/HOLD_MS)*100,100)+'%';
+
+    if(elapsed>=HOLD_MS){
+
+      holdStart=null;
+
+      holdBar.style.width='0%';
+
+      holdBarWrap.style.opacity='0';
+
+      comboIndex++;
+
+      updateComboUI();
+
+      if(comboIndex>=COMBO.length){
+
+        activateJutsu(
+          lm[9].x*640,
+          lm[9].y*480
+        );
+      }
+    }
+
+  }else{
+
+    if(sign!==lastSign){
+
+      lastSign=sign;
+
+      holdStart=null;
+
+      holdBar.style.width='0%';
+
+      holdBarWrap.style.opacity='0';
+
+      if(!sign.includes('Keep trying') &&
+         sign!==COMBO[comboIndex]){
+
+        comboIndex=sign===COMBO[0] ? 1 : 0;
+
+        updateComboUI();
+      }
+    }
+  }
+});
+
+updateComboUI();
+
+const camera=new Camera(video,{
+
+  onFrame:async()=>{
+    await hands.send({image:video});
+  },
+
+  width:640,
+  height:480
+});
+
+camera.start().then(()=>{
+  statusEl.textContent='Camera ready! Show your hand!';
+});
+
+</script>
+
 </body>
 </html>
