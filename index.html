@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Naruto Jutsu · Rasengan + Shadow Clone (Same Level)</title>
+  <title>Naruto Jutsu · Rasengan + Shadow Clone (Anime White Smoke)</title>
   <style>
     * {
       margin: 0;
@@ -35,6 +35,7 @@
       font-size: 12px;
       color: #ffaa55;
       margin-bottom: 10px;
+      text-align: center;
     }
 
     #container {
@@ -86,30 +87,12 @@
       margin-bottom: 8px;
     }
 
-    .panel {
+    .combo-panel {
       background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(8px);
       border-radius: 40px;
       padding: 6px 18px;
       border: 1px solid #ffaa33;
-    }
-
-    .confidence-area {
-      display: flex;
-      gap: 12px;
-      align-items: baseline;
-    }
-
-    .conf-label {
-      font-size: 14px;
-      color: #FFD966;
-    }
-
-    .conf-value {
-      font-family: monospace;
-      font-size: 22px;
-      font-weight: bold;
-      color: #ff8c00;
     }
 
     #combo-display {
@@ -147,23 +130,6 @@
       to { opacity: 1; }
     }
 
-    #hold-bar-wrap, #clone-hold-wrap {
-      width: 150px;
-      height: 6px;
-      background: #222;
-      border-radius: 3px;
-      overflow: hidden;
-      transition: opacity 0.2s;
-    }
-
-    #hold-bar, #clone-hold-bar {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #ff6b00, #ffcc00);
-      border-radius: 3px;
-      transition: width 0.05s linear;
-    }
-
     #jutsu-name {
       margin-top: 6px;
       font-size: 0px;
@@ -175,6 +141,7 @@
       transition: font-size 0.4s ease, opacity 0.4s;
       opacity: 0;
       min-height: 36px;
+      text-align: center;
     }
 
     #jutsu-name.show {
@@ -188,12 +155,14 @@
       color: #ffaa33;
       margin-top: 8px;
       min-height: 40px;
+      text-align: center;
     }
 
     .status-text {
       font-size: 12px;
       color: #aaa;
       margin-top: 5px;
+      text-align: center;
     }
 
     button {
@@ -205,8 +174,9 @@
       border-radius: 30px;
       cursor: pointer;
       font-size: 12px;
-      margin-left: 12px;
       transition: 0.2s;
+      display: block;
+      margin: 8px auto 0;
     }
 
     button:hover {
@@ -218,20 +188,14 @@
       font-size: 11px;
       color: #888;
       margin-top: 8px;
-    }
-
-    .clone-hold-area {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 4px;
+      text-align: center;
     }
   </style>
 </head>
 <body>
 
 <h1>🥷 NARUTO JUTSU LAB</h1>
-<div class="subtitle">🐍🐦🖐️ Rasengan Combo  |  🐶 Dog Sign Hold 1.5s → Shadow Clone (same level)</div>
+<div class="subtitle">🐍🐦🖐️ Rasengan Combo  |  🐶 Dog Sign Hold 1.5s (Either Hand) → Shadow Clone + Anime White Smoke</div>
 
 <div id="container">
   <video id="video" autoplay playsinline muted></video>
@@ -240,32 +204,16 @@
 </div>
 
 <div class="info-row">
-  <div class="panel">
-    <div class="confidence-area">
-      <span class="conf-label">🐶 CLONE (Dog Sign Hold)</span>
-      <span id="cloneConf" class="conf-value">0%</span>
-    </div>
-    <div class="clone-hold-area">
-      <div id="clone-hold-wrap" style="opacity:0;"><div id="clone-hold-bar"></div></div>
-      <span style="font-size:10px;">hold 1.5s</span>
-    </div>
-  </div>
-  <div class="panel">
+  <div class="combo-panel">
     <div id="combo-display"></div>
-    <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
-      <div id="hold-bar-wrap" style="opacity:0;"><div id="hold-bar"></div></div>
-      <span style="font-size: 10px;">hold to confirm</span>
-    </div>
   </div>
 </div>
 
-<div id="sign-display">🤚 Show right hand</div>
+<div id="sign-display">🤚 Show either hand</div>
 <div id="jutsu-name">🌀 RASENGAN!</div>
-<div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 6px;">
-  <button id="resetClonesBtn">✖ Reset Clones</button>
-  <span id="statusMsg" class="status-text">Loading...</span>
-</div>
-<div class="reset-tip">💡 Shadow Clone: show 🐶 Dog sign (index+middle up, others down) with your RIGHT hand and hold for 1.5 seconds → 4 clones appear at same level behind you!</div>
+<button id="resetClonesBtn">✖ Reset Clones</button>
+<div class="reset-tip">💡 Shadow Clone: hold 🐶 Dog sign (index+middle up, others down) 1.5s → white smoke burst + 4 clones (30s duration)</div>
+<div class="status-text" id="statusMsg">Loading...</div>
 
 <!-- MediaPipe Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
@@ -282,18 +230,13 @@
     const comboDisplay = document.getElementById('combo-display');
     const jutsuNameEl = document.getElementById('jutsu-name');
     const statusEl = document.getElementById('statusMsg');
-    const holdBarWrap = document.getElementById('hold-bar-wrap');
-    const holdBar = document.getElementById('hold-bar');
     const flashEl = document.getElementById('flash');
-    const cloneConfSpan = document.getElementById('cloneConf');
     const resetClonesBtn = document.getElementById('resetClonesBtn');
-    const cloneHoldWrap = document.getElementById('clone-hold-wrap');
-    const cloneHoldBar = document.getElementById('clone-hold-bar');
 
     canvas.width = 640;
     canvas.height = 480;
 
-    // ---------- RASENGAN COMBO SYSTEM (original) ----------
+    // ---------- RASENGAN COMBO SYSTEM ----------
     const COMBO = ['🐍 Snake', '🐦 Bird', '🖐️ Tiger'];
     let comboIndex = 0;
     let lastSign = '';
@@ -307,51 +250,99 @@
     let shakeFrames = 0;
     let time = 0;
 
-    // ---------- CLONE SYSTEM (Dog sign hold 1.5s, same Y level) ----------
+    // ---------- CLONE SYSTEM (White Anime Smoke) ----------
     let clonesTriggered = false;
     let cloneStartTime = null;
     let maskImage = null;
     let cloneHoldTimer = null;
     let cloneHoldActive = false;
-    let cloneHoldProgress = 0;
+    let cloneAutoResetTimer = null;
     
     const CLONE_HOLD_REQUIRED = 1500; // 1.5 seconds
+    const CLONE_DURATION = 30000;     // 30 seconds
     
-    // Clones positioned at same vertical level (y: 0) but different horizontal offsets.
-    // "Behind" effect is created by drawing them first, and slightly reduced scale.
+    // Clone positions (lowered Y = 80, full size)
     const clones = [
-      { x: -70, y: 0, scale: 0.72, delay: 800,  smokeSpawned: false },   // left rear
-      { x: 70,  y: 0, scale: 0.72, delay: 950,  smokeSpawned: false },   // right rear
-      { x: -140, y: 0, scale: 0.62, delay: 1150, smokeSpawned: false },  // far left
-      { x: 140,  y: 0, scale: 0.62, delay: 1250, smokeSpawned: false }    // far right
+      { x: -220, y: 80, scale: 1.0, delay: 800,  smokeSpawned: false },
+      { x: 220,  y: 80, scale: 1.0, delay: 950,  smokeSpawned: false },
+      { x: -140, y: 80, scale: 1.0, delay: 1150, smokeSpawned: false },
+      { x: 140,  y: 80, scale: 1.0, delay: 1250, smokeSpawned: false }
     ];
-    const activeSmokes = [];
+    
+    // --- ANIME WHITE SMOKE PARTICLES ---
+    let activeSmokes = []; // each smoke object: { x, y, scale, start, duration, frames[] }
     const SMOKE_FRAMES = [];
 
-    // generate smoke frames
-    for (let i = 0; i < 5; i++) {
-      const sz = 70 + i * 4;
+    // Generate soft white/gray smoke sprites (anime style)
+    for (let i = 0; i < 6; i++) {
+      const sz = 90 + i * 8;
       const off = document.createElement('canvas');
       off.width = sz; off.height = sz;
       const octx = off.getContext('2d');
       const center = sz/2;
-      const grad = octx.createRadialGradient(center, center, 5, center, center, center);
-      grad.addColorStop(0, `rgba(140, 100, 70, ${0.9 - i*0.1})`);
-      grad.addColorStop(0.4, `rgba(100, 70, 45, 0.7)`);
-      grad.addColorStop(0.7, `rgba(70, 45, 25, 0.4)`);
-      grad.addColorStop(1, 'rgba(30,20,5,0)');
+      // Radial gradient: white core, fading to light gray and transparent
+      const grad = octx.createRadialGradient(center, center, 5, center, center, center-5);
+      grad.addColorStop(0, `rgba(255, 255, 255, ${0.95 - i*0.1})`);
+      grad.addColorStop(0.3, `rgba(240, 240, 255, ${0.8 - i*0.1})`);
+      grad.addColorStop(0.6, `rgba(200, 210, 230, ${0.5 - i*0.05})`);
+      grad.addColorStop(0.85, `rgba(150, 160, 180, 0.2)`);
+      grad.addColorStop(1, `rgba(100, 110, 130, 0)`);
       octx.fillStyle = grad;
       octx.fillRect(0, 0, sz, sz);
+      // Add slight blur effect by drawing overlapping circles
+      octx.globalCompositeOperation = 'source-over';
+      for(let b=0; b<3; b++) {
+        octx.beginPath();
+        octx.arc(center + (Math.random()-0.5)*12, center + (Math.random()-0.5)*12, sz*0.25, 0, Math.PI*2);
+        octx.fillStyle = `rgba(255, 255, 255, ${0.3 + Math.random()*0.2})`;
+        octx.fill();
+      }
       SMOKE_FRAMES.push(off);
     }
 
-    function spawnSmoke(x, y, scaleFact = 0.8) {
+    // Additional large "poof" smoke for the initial burst
+    const BIG_POOF_FRAMES = [];
+    for (let i = 0; i < 4; i++) {
+      const sz = 120 + i * 10;
+      const off = document.createElement('canvas');
+      off.width = sz; off.height = sz;
+      const octx = off.getContext('2d');
+      const center = sz/2;
+      const grad = octx.createRadialGradient(center, center, 8, center, center, center-8);
+      grad.addColorStop(0, `rgba(255, 255, 255, 0.98)`);
+      grad.addColorStop(0.4, `rgba(245, 245, 255, 0.85)`);
+      grad.addColorStop(0.7, `rgba(210, 220, 240, 0.5)`);
+      grad.addColorStop(1, `rgba(160, 170, 190, 0)`);
+      octx.fillStyle = grad;
+      octx.fillRect(0, 0, sz, sz);
+      BIG_POOF_FRAMES.push(off);
+    }
+
+    function spawnSmoke(x, y, scaleFact = 0.9, isBig = false) {
+      const frames = isBig ? BIG_POOF_FRAMES : SMOKE_FRAMES;
       activeSmokes.push({
         x, y, scale: scaleFact * 0.85,
         start: performance.now(),
-        duration: 720,
-        frames: SMOKE_FRAMES
+        duration: isBig ? 800 : 650,
+        frames: frames,
+        big: isBig
       });
+    }
+
+    // Burst of multiple smoke clouds at once (anime poof)
+    function burstSmoke(centerX, centerY) {
+      // large central poof
+      spawnSmoke(centerX, centerY, 1.4, true);
+      spawnSmoke(centerX - 25, centerY - 15, 1.0, true);
+      spawnSmoke(centerX + 30, centerY - 10, 1.1, true);
+      spawnSmoke(centerX - 15, centerY + 20, 0.9, true);
+      spawnSmoke(centerX + 20, centerY + 25, 1.0, true);
+      // additional smaller white puffs
+      for(let i=0;i<6;i++) {
+        const offX = centerX + (Math.random() - 0.5) * 70;
+        const offY = centerY + (Math.random() - 0.5) * 60;
+        spawnSmoke(offX, offY, 0.7 + Math.random()*0.4, false);
+      }
     }
 
     function drawSmokes() {
@@ -361,12 +352,17 @@
         const elapsed = now - s.start;
         let progress = Math.min(1, elapsed / s.duration);
         const frameIdx = Math.floor(progress * s.frames.length);
-        if (frameIdx >= s.frames.length) { activeSmokes.splice(i,1); continue; }
+        if (frameIdx >= s.frames.length) {
+          activeSmokes.splice(i,1);
+          continue;
+        }
         const img = s.frames[frameIdx];
         ctx.save();
-        ctx.globalAlpha = 1 - progress * 0.8;
+        // Smoke fades and expands slightly
+        const scaleFactor = s.scale * (1 + progress * 0.3);
+        ctx.globalAlpha = 1 - progress * 0.85;
         ctx.translate(s.x, s.y);
-        ctx.scale(s.scale, s.scale);
+        ctx.scale(scaleFactor, scaleFactor);
         ctx.drawImage(img, -img.width/2, -img.height/2);
         ctx.restore();
       }
@@ -379,28 +375,30 @@
         if (!cl.smokeSpawned && (now - startTime >= cl.delay)) {
           cl.smokeSpawned = true;
           const centerX = (canvas.width/2) + cl.x;
-          const centerY = (canvas.height/2) + cl.y; // same level, no offset
-          spawnSmoke(centerX-8, centerY-5, cl.scale * 0.8);
-          spawnSmoke(centerX+12, centerY+2, cl.scale * 0.85);
+          const centerY = (canvas.height/2) + cl.y;
+          // Each clone gets a smaller white puff when it appears
+          spawnSmoke(centerX-10, centerY-5, 0.8, false);
+          spawnSmoke(centerX+15, centerY+5, 0.85, false);
+          spawnSmoke(centerX, centerY-12, 0.75, false);
         }
       });
     }
 
     function resetClones() {
+      if (cloneAutoResetTimer) {
+        clearTimeout(cloneAutoResetTimer);
+        cloneAutoResetTimer = null;
+      }
       clonesTriggered = false;
       cloneStartTime = null;
       clones.forEach(cl => cl.smokeSpawned = false);
-      activeSmokes.length = 0;
-      // reset hold UI
+      activeSmokes = [];
       cloneHoldActive = false;
-      cloneHoldProgress = 0;
-      cloneHoldWrap.style.opacity = '0';
-      cloneHoldBar.style.width = '0%';
       if (cloneHoldTimer) clearInterval(cloneHoldTimer);
       cloneHoldTimer = null;
-      statusEl.textContent = 'Clones reset. Show Dog sign for 1.5s to summon again.';
+      statusEl.textContent = 'Clones vanished. Show Dog sign again to summon.';
       setTimeout(() => {
-        if(statusEl.textContent.includes('reset')) statusEl.textContent = 'Camera ready';
+        if(statusEl.textContent.includes('vanished')) statusEl.textContent = 'Camera ready';
       }, 2000);
     }
 
@@ -427,26 +425,25 @@
     function drawClonesAndLeader(personCanvas, startTime) {
       if (!personCanvas) return;
       const now = performance.now();
-      // draw clones (behind) - same Y level
       clones.forEach(cl => {
         if (now - startTime >= cl.delay) {
           ctx.save();
           const offX = cl.x + canvas.width/2;
-          const offY = cl.y + canvas.height/2;  // same vertical level as main
+          const offY = cl.y + canvas.height/2;
           ctx.translate(offX, offY);
           ctx.scale(cl.scale, cl.scale);
           ctx.drawImage(personCanvas, -personCanvas.width/2, -personCanvas.height/2);
           ctx.restore();
         }
       });
-      // draw main person on top
       ctx.drawImage(personCanvas, 0, 0, canvas.width, canvas.height);
     }
 
-    // ---------- Hand sign detection helpers (original) ----------
+    // ---------- Hand sign detection (any hand) ----------
     function isFingerUp(lm, tip, pip) { return lm[tip].y < lm[pip].y - 0.03; }
     function isThumbUp(lm, handedness) {
-      return handedness === 'Right' ? lm[4].x < lm[3].x - 0.02 : lm[4].x > lm[3].x + 0.02;
+      if (handedness === 'Right') return lm[4].x < lm[3].x - 0.02;
+      else return lm[4].x > lm[3].x + 0.02;
     }
     function detectSign(lm, handedness) {
       const thumb = isThumbUp(lm, handedness),
@@ -462,7 +459,7 @@
       return '🤔 Keep trying...';
     }
 
-    // ---------- Rasengan drawing and effects ----------
+    // ---------- Rasengan drawing (unchanged) ----------
     function triggerFlash() {
       flashEl.style.opacity = '1';
       setTimeout(() => flashEl.style.opacity = '0.5', 60);
@@ -588,7 +585,6 @@
     hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
 
     hands.onResults((results) => {
-      // screen shake
       if (shakeFrames > 0) {
         shakeFrames--;
         const s = (shakeFrames / 20) * 6;
@@ -604,68 +600,57 @@
       if (maskImage) personCutout = extractPersonCutout();
       
       const handFound = results.multiHandLandmarks && results.multiHandLandmarks.length > 0;
-      let rightHandLandmarks = null;
+      let activeHandLandmarks = null;
       let handednessLabel = null;
       if (handFound) {
-        rightHandLandmarks = results.multiHandLandmarks[0];
+        activeHandLandmarks = results.multiHandLandmarks[0];
         handednessLabel = results.multiHandedness[0].label;
       }
 
-      // ----- CLONE JUTSU: detect DOG sign on RIGHT hand, hold 1.5s -----
+      // ----- CLONE JUTSU: Dog sign hold 1.5s with WHITE SMOKE BURST -----
       let isDogSign = false;
-      if (rightHandLandmarks && handednessLabel === 'Right') {
-        const sign = detectSign(rightHandLandmarks, 'Right');
+      if (activeHandLandmarks) {
+        const sign = detectSign(activeHandLandmarks, handednessLabel);
         isDogSign = (sign === '🐶 Dog');
         if (isDogSign) {
-          cloneConfSpan.innerText = '🐶';
           if (!cloneHoldActive && !clonesTriggered) {
             cloneHoldActive = true;
-            cloneHoldProgress = 0;
-            cloneHoldWrap.style.opacity = '1';
             const startTime = Date.now();
             if (cloneHoldTimer) clearInterval(cloneHoldTimer);
             cloneHoldTimer = setInterval(() => {
               const elapsed = Date.now() - startTime;
-              const percent = Math.min(100, (elapsed / CLONE_HOLD_REQUIRED) * 100);
-              cloneHoldBar.style.width = percent + '%';
-              cloneHoldProgress = percent;
               if (elapsed >= CLONE_HOLD_REQUIRED && !clonesTriggered) {
                 clearInterval(cloneHoldTimer);
                 cloneHoldTimer = null;
                 cloneHoldActive = false;
                 clonesTriggered = true;
                 cloneStartTime = performance.now();
-                spawnSmoke(canvas.width/2, canvas.height/2+20, 1.0);
-                spawnSmoke(canvas.width/2+30, canvas.height/2+15, 0.9);
-                statusEl.textContent = '⚡ SHADOW CLONE JUTSU! 4 clones behind you (same level)!';
-                setTimeout(() => {
-                  if(statusEl.textContent.includes('CLONE')) statusEl.textContent = 'Rasengan combo ready';
-                }, 2500);
-                cloneHoldWrap.style.opacity = '0';
-                cloneHoldBar.style.width = '0%';
+                // ANIME WHITE SMOKE BURST at the caster's position
+                burstSmoke(canvas.width/2, canvas.height/2);
+                statusEl.textContent = '💨 SHADOW CLONE JUTSU! White smoke burst! Clones for 30s.';
+                if (cloneAutoResetTimer) clearTimeout(cloneAutoResetTimer);
+                cloneAutoResetTimer = setTimeout(() => {
+                  resetClones();
+                  statusEl.textContent = 'Clones faded after 30 seconds. Recast with Dog sign.';
+                  setTimeout(() => {
+                    if(statusEl.textContent.includes('faded')) statusEl.textContent = 'Camera ready';
+                  }, 2000);
+                }, CLONE_DURATION);
               }
             }, 50);
-          } else if (clonesTriggered) {
-            cloneHoldWrap.style.opacity = '0';
           }
         } else {
           if (cloneHoldActive) {
             clearInterval(cloneHoldTimer);
             cloneHoldTimer = null;
             cloneHoldActive = false;
-            cloneHoldWrap.style.opacity = '0';
-            cloneHoldBar.style.width = '0%';
           }
-          cloneConfSpan.innerText = '0%';
         }
       } else {
-        cloneConfSpan.innerText = '0%';
         if (cloneHoldActive) {
           clearInterval(cloneHoldTimer);
           cloneHoldTimer = null;
           cloneHoldActive = false;
-          cloneHoldWrap.style.opacity = '0';
-          cloneHoldBar.style.width = '0%';
         }
       }
 
@@ -673,19 +658,19 @@
       if (clonesTriggered && cloneStartTime && personCutout) {
         updateCloneSmokes(cloneStartTime);
         drawClonesAndLeader(personCutout, cloneStartTime);
-        drawSmokes();
+        drawSmokes(); // render all smoke particles (including the white burst)
       } else if (personCutout) {
         ctx.drawImage(personCutout, 0, 0, canvas.width, canvas.height);
       } else {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       }
 
-      // ----- RASENGAN COMBO (original, independent) -----
+      // ----- RASENGAN COMBO (tracked hand) -----
       if (jutsuActive) {
         if (!handFound) {
           deactivateJutsu();
         } else {
-          const lm = rightHandLandmarks;
+          const lm = activeHandLandmarks;
           const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[13].x)/4;
           const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[13].y)/4;
           const dx = lm[9].x - lm[0].x;
@@ -707,14 +692,13 @@
       // Normal hand sign detection for combo
       if (!handFound) {
         signDisplay.textContent = 'Waiting for hand...';
-        statusEl.textContent = 'Show your right hand for signs';
-        holdBarWrap.style.opacity = '0';
+        statusEl.textContent = 'Show either hand for signs';
         holdStart = null;
         lastSign = '';
         return;
       }
 
-      const lm = rightHandLandmarks;
+      const lm = activeHandLandmarks;
       const handedness = handednessLabel;
       drawSkeleton(lm, 1);
       const sign = detectSign(lm, handedness);
@@ -725,30 +709,26 @@
         if (sign !== lastSign) {
           holdStart = Date.now();
           lastSign = sign;
-          holdBarWrap.style.opacity = '1';
         }
-        const elapsed = Date.now() - holdStart;
-        holdBar.style.width = Math.min((elapsed / HOLD_MS) * 100, 100) + '%';
-        if (elapsed >= HOLD_MS) {
-          holdStart = null;
-          holdBar.style.width = '0%';
-          holdBarWrap.style.opacity = '0';
-          comboIndex++;
-          updateComboUI();
-          if (comboIndex >= COMBO.length) {
-            const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[13].x)/4;
-            const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[13].y)/4;
-            const dx = lm[9].x - lm[0].x;
-            const dy = lm[9].y - lm[0].y;
-            activateJutsu((palmX + dx*0.35)*640, (palmY + dy*0.35)*480);
+        if (holdStart) {
+          const elapsed = Date.now() - holdStart;
+          if (elapsed >= HOLD_MS) {
+            holdStart = null;
+            comboIndex++;
+            updateComboUI();
+            if (comboIndex >= COMBO.length) {
+              const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[13].x)/4;
+              const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[13].y)/4;
+              const dx = lm[9].x - lm[0].x;
+              const dy = lm[9].y - lm[0].y;
+              activateJutsu((palmX + dx*0.35)*640, (palmY + dy*0.35)*480);
+            }
           }
         }
       } else {
         if (sign !== lastSign) {
           lastSign = sign;
           holdStart = null;
-          holdBar.style.width = '0%';
-          holdBarWrap.style.opacity = '0';
           if (!sign.includes('Keep trying') && sign !== COMBO[comboIndex]) {
             comboIndex = (sign === COMBO[0]) ? 1 : 0;
             updateComboUI();
@@ -769,7 +749,7 @@
       height: 480
     });
     camera.start().then(() => {
-      statusEl.textContent = 'Camera ready! Show 🐶 Dog sign with RIGHT hand and hold for 1.5s to summon clones (same level)!';
+      statusEl.textContent = 'Camera ready! Hold 🐶 Dog sign 1.5s → White smoke burst + clones (30s).';
     }).catch(e => {
       statusEl.textContent = 'Camera error: ' + e.message;
     });
