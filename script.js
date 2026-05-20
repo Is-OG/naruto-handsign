@@ -24,13 +24,12 @@
   let rasenX = 320, rasenY = 240;
   let rasenTargetX = 320, rasenTargetY = 240;
   let rasenAngle = 0;
-  let rasenScale = 0;           // current visual scale (0 → target)
-  let rasenTargetScale = 0;     // target scale based on hand size
+  let rasenScale = 0;
+  let rasenTargetScale = 0;
   let shakeFrames = 0;
   let time = 0;
 
-  // Compute hand size on screen (distance between wrist and middle finger tip)
-  // Then map it to a Rasengan scale that feels natural (bigger hand = bigger Rasengan)
+  // Compute hand size on screen and map to Rasengan scale
   function getHandScaleFactor(landmarks) {
     if (!landmarks || landmarks.length < 21) return 1.0;
     const wrist = landmarks[0];
@@ -38,13 +37,12 @@
     const dx = (wrist.x - middleTip.x) * canvas.width;
     const dy = (wrist.y - middleTip.y) * canvas.height;
     const handPixels = Math.sqrt(dx*dx + dy*dy);
-    // Typical hand size in pixels: ~80-180. Map 80→0.6, 180→1.4
     let scale = 0.6 + (handPixels - 80) * (0.8 / 100);
     scale = Math.min(1.6, Math.max(0.5, scale));
     return scale;
   }
 
-  // ---------- CLONE SYSTEM (White Anime Smoke) ----------
+  // ---------- CLONE SYSTEM (1 second hold) ----------
   let clonesTriggered = false;
   let cloneStartTime = null;
   let maskImage = null;
@@ -52,10 +50,9 @@
   let cloneHoldActive = false;
   let cloneAutoResetTimer = null;
   
-  const CLONE_HOLD_REQUIRED = 1500; // 1.5 seconds
+  const CLONE_HOLD_REQUIRED = 1000; // 1 second (was 1500)
   const CLONE_DURATION = 30000;     // 30 seconds
   
-  // Clone positions (lowered Y = 80, full size)
   const clones = [
     { x: -220, y: 80, scale: 1.0, delay: 800,  smokeSpawned: false },
     { x: 220,  y: 80, scale: 1.0, delay: 950,  smokeSpawned: false },
@@ -67,7 +64,6 @@
   let activeSmokes = [];
   const SMOKE_FRAMES = [];
 
-  // Generate soft white/gray smoke sprites (anime style)
   for (let i = 0; i < 6; i++) {
     const sz = 90 + i * 8;
     const off = document.createElement('canvas');
@@ -265,10 +261,9 @@
     if (jutsuActive) return;
     jutsuActive = true;
     jutsuNameEl.classList.add('show');
-    // Set initial scale based on current hand size on screen
     if (handLandmarks) {
       rasenTargetScale = getHandScaleFactor(handLandmarks);
-      rasenScale = rasenTargetScale * 0.3; // start smaller, grow smoothly
+      rasenScale = rasenTargetScale * 0.3;
     } else {
       rasenTargetScale = 1.0;
       rasenScale = 0.3;
@@ -290,7 +285,7 @@
   function drawRasengan(x, y, angle, scale) {
     if (scale <= 0) return;
     time++;
-    const r = 58 * Math.min(scale, 1.6); // allow up to 1.6x
+    const r = 58 * Math.min(scale, 1.6);
     const pulse = 1 + Math.sin(time * 0.12) * 0.025;
     ctx.save();
     ctx.translate(x, y);
@@ -402,7 +397,7 @@
       handednessLabel = results.multiHandedness[0].label;
     }
 
-    // ----- CLONE JUTSU (white smoke burst) -----
+    // ----- CLONE JUTSU (1 second hold) -----
     let isDogSign = false;
     if (activeHandLandmarks) {
       const sign = detectSign(activeHandLandmarks, handednessLabel);
@@ -465,13 +460,10 @@
         deactivateJutsu();
       } else {
         const lm = activeHandLandmarks;
-        // Compute target scale based on hand's on‑screen size
         rasenTargetScale = getHandScaleFactor(lm);
-        // Smoothly adjust current scale towards target
         rasenScale = rasenScale * 0.92 + rasenTargetScale * 0.08;
         rasenScale = Math.min(1.6, Math.max(0.3, rasenScale));
         
-        // Position follows palm center (same as before)
         const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[13].x)/4;
         const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[13].y)/4;
         const dx = lm[9].x - lm[0].x;
@@ -550,7 +542,7 @@
     height: 480
   });
   camera.start().then(() => {
-    statusEl.textContent = 'Camera ready! Hold 🐶 Dog sign 1.5s → white smoke + clones (30s). Rasengan size follows your hand.';
+    statusEl.textContent = 'Camera ready! Hold 🐶 Dog sign 1 second → white smoke burst + clones (30s). Rasengan size follows your hand.';
   }).catch(e => {
     statusEl.textContent = 'Camera error: ' + e.message;
   });
