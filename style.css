@@ -1,0 +1,185 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #050505;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: white;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding-bottom: 20px;
+}
+
+h1 {
+  margin: 18px 0 5px;
+  color: #ff6b00;
+  font-size: 26px;
+  text-shadow: 0 0 12px #ff6b00aa;
+  letter-spacing: 1px;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: #ffaa55;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+#container {
+  position: relative;
+  width: 640px;
+  height: 480px;
+}
+
+video {
+  width: 640px;
+  height: 480px;
+  border: 3px solid #ff6b00;
+  border-radius: 12px;
+  transform: scaleX(-1);
+  display: block;
+}
+
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 640px;
+  height: 480px;
+  transform: scaleX(-1);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+#flash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 640px;
+  height: 480px;
+  border-radius: 12px;
+  background: radial-gradient(circle, #ffffff, #88eeff, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.05s;
+  z-index: 10;
+}
+
+.info-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.combo-panel {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  border-radius: 40px;
+  padding: 6px 18px;
+  border: 1px solid #ffaa33;
+}
+
+#combo-display {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 22px;
+}
+
+.csign {
+  transition: all 0.3s;
+  font-size: 24px;
+}
+
+.csign.done {
+  filter: drop-shadow(0 0 6px #00ff88);
+  transform: scale(1.2);
+}
+
+.csign.next {
+  animation: blink 0.5s infinite alternate;
+}
+
+.csign.todo {
+  opacity: 0.25;
+}
+
+.arrow {
+  color: #444;
+  font-size: 16px;
+}
+
+@keyframes blink {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+#jutsu-name {
+  margin-top: 6px;
+  font-size: 0px;
+  color: #00cfff;
+  text-shadow: 0 0 20px #00cfff, 0 0 40px #00cfff;
+  font-style: italic;
+  font-weight: bold;
+  letter-spacing: 3px;
+  transition: font-size 0.4s ease, opacity 0.4s;
+  opacity: 0;
+  min-height: 36px;
+  text-align: center;
+}
+
+#jutsu-name.show {
+  font-size: 26px;
+  opacity: 1;
+}
+
+#sign-display {
+  font-size: 22px;
+  font-weight: bold;
+  color: #ffaa33;
+  margin-top: 8px;
+  min-height: 40px;
+  text-align: center;
+}
+
+.status-text {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 5px;
+  text-align: center;
+}
+
+button {
+  background: #ff8c00;
+  border: none;
+  color: black;
+  font-weight: bold;
+  padding: 5px 16px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: 0.2s;
+  display: block;
+  margin: 8px auto 0;
+}
+
+button:hover {
+  background: #ffaa33;
+  transform: scale(1.02);
+}
+
+.reset-tip {
+  font-size: 11px;
+  color: #888;
+  margin-top: 8px;
+  text-align: center;
+}
