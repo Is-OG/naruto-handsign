@@ -13,7 +13,7 @@
   canvas.width = 640;
   canvas.height = 480;
 
-  // ---------- RASENGAN COMBO SYSTEM ----------
+  // ---------- RASENGAN COMBO SYSTEM (hand‑proportional scaling) ----------
   const COMBO = ['🐍 Snake', '🐦 Bird', '🖐️ Tiger'];
   let comboIndex = 0;
   let lastSign = '';
@@ -23,9 +23,26 @@
 
   let rasenX = 320, rasenY = 240;
   let rasenTargetX = 320, rasenTargetY = 240;
-  let rasenAngle = 0, rasenScale = 0;
+  let rasenAngle = 0;
+  let rasenScale = 0;           // current visual scale (0 → target)
+  let rasenTargetScale = 0;     // target scale based on hand size
   let shakeFrames = 0;
   let time = 0;
+
+  // Compute hand size on screen (distance between wrist and middle finger tip)
+  // Then map it to a Rasengan scale that feels natural (bigger hand = bigger Rasengan)
+  function getHandScaleFactor(landmarks) {
+    if (!landmarks || landmarks.length < 21) return 1.0;
+    const wrist = landmarks[0];
+    const middleTip = landmarks[12];
+    const dx = (wrist.x - middleTip.x) * canvas.width;
+    const dy = (wrist.y - middleTip.y) * canvas.height;
+    const handPixels = Math.sqrt(dx*dx + dy*dy);
+    // Typical hand size in pixels: ~80-180. Map 80→0.6, 180→1.4
+    let scale = 0.6 + (handPixels - 80) * (0.8 / 100);
+    scale = Math.min(1.6, Math.max(0.5, scale));
+    return scale;
+  }
 
   // ---------- CLONE SYSTEM (White Anime Smoke) ----------
   let clonesTriggered = false;
@@ -65,7 +82,6 @@
     grad.addColorStop(1, `rgba(100, 110, 130, 0)`);
     octx.fillStyle = grad;
     octx.fillRect(0, 0, sz, sz);
-    // Add slight blur effect by drawing overlapping circles
     octx.globalCompositeOperation = 'source-over';
     for(let b=0; b<3; b++) {
       octx.beginPath();
@@ -76,7 +92,6 @@
     SMOKE_FRAMES.push(off);
   }
 
-  // Additional large "poof" smoke for the initial burst
   const BIG_POOF_FRAMES = [];
   for (let i = 0; i < 4; i++) {
     const sz = 120 + i * 10;
@@ -230,7 +245,7 @@
     return '🤔 Keep trying...';
   }
 
-  // ---------- Rasengan drawing ----------
+  // ---------- Rasengan drawing and effects ----------
   function triggerFlash() {
     flashEl.style.opacity = '1';
     setTimeout(() => flashEl.style.opacity = '0.5', 60);
@@ -246,27 +261,36 @@
       return html;
     }).join('');
   }
-  function activateJutsu(x, y) {
+  function activateJutsu(x, y, handLandmarks) {
     if (jutsuActive) return;
     jutsuActive = true;
     jutsuNameEl.classList.add('show');
-    rasenScale = 0;
+    // Set initial scale based on current hand size on screen
+    if (handLandmarks) {
+      rasenTargetScale = getHandScaleFactor(handLandmarks);
+      rasenScale = rasenTargetScale * 0.3; // start smaller, grow smoothly
+    } else {
+      rasenTargetScale = 1.0;
+      rasenScale = 0.3;
+    }
     triggerFlash();
     triggerShake();
-    statusEl.textContent = '🌀 RASENGAN ACTIVE — remove hand to cancel';
+    statusEl.textContent = '🌀 RASENGAN — size follows your hand (close = big, far = small)';
   }
   function deactivateJutsu() {
     jutsuActive = false;
     jutsuNameEl.classList.remove('show');
     rasenScale = 0;
+    rasenTargetScale = 0;
     comboIndex = 0;
     updateComboUI();
     statusEl.textContent = 'Rasengan cancelled — show hand to restart';
   }
+
   function drawRasengan(x, y, angle, scale) {
     if (scale <= 0) return;
     time++;
-    const r = 58 * Math.min(scale, 1);
+    const r = 58 * Math.min(scale, 1.6); // allow up to 1.6x
     const pulse = 1 + Math.sin(time * 0.12) * 0.025;
     ctx.save();
     ctx.translate(x, y);
@@ -378,7 +402,7 @@
       handednessLabel = results.multiHandedness[0].label;
     }
 
-    // ----- CLONE JUTSU: Dog sign hold 1.5s with WHITE SMOKE BURST -----
+    // ----- CLONE JUTSU (white smoke burst) -----
     let isDogSign = false;
     if (activeHandLandmarks) {
       const sign = detectSign(activeHandLandmarks, handednessLabel);
@@ -435,12 +459,19 @@
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     }
 
-    // ----- RASENGAN COMBO -----
+    // ----- RASENGAN with hand‑size‑proportional scaling -----
     if (jutsuActive) {
       if (!handFound) {
         deactivateJutsu();
       } else {
         const lm = activeHandLandmarks;
+        // Compute target scale based on hand's on‑screen size
+        rasenTargetScale = getHandScaleFactor(lm);
+        // Smoothly adjust current scale towards target
+        rasenScale = rasenScale * 0.92 + rasenTargetScale * 0.08;
+        rasenScale = Math.min(1.6, Math.max(0.3, rasenScale));
+        
+        // Position follows palm center (same as before)
         const palmX = (lm[0].x + lm[5].x + lm[9].x + lm[13].x)/4;
         const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[13].y)/4;
         const dx = lm[9].x - lm[0].x;
@@ -449,12 +480,12 @@
         rasenTargetY = (palmY + dy*0.35) * 480;
         rasenX += (rasenTargetX - rasenX) * 0.20;
         rasenY += (rasenTargetY - rasenY) * 0.20;
-        rasenScale = Math.min(rasenScale + 0.03, 1.3);
         rasenAngle += 0.09;
+        
         drawSkeleton(lm, 0.15);
         drawRasengan(rasenX, rasenY, rasenAngle, rasenScale);
         signDisplay.textContent = '';
-        statusEl.textContent = '🌀 RASENGAN ACTIVE — remove hand to cancel';
+        statusEl.textContent = `🌀 RASENGAN (size: ${Math.round(rasenScale*100)}%) — scales with your hand`;
         return;
       }
     }
@@ -491,7 +522,7 @@
             const palmY = (lm[0].y + lm[5].y + lm[9].y + lm[13].y)/4;
             const dx = lm[9].x - lm[0].x;
             const dy = lm[9].y - lm[0].y;
-            activateJutsu((palmX + dx*0.35)*640, (palmY + dy*0.35)*480);
+            activateJutsu((palmX + dx*0.35)*640, (palmY + dy*0.35)*480, lm);
           }
         }
       }
@@ -519,7 +550,7 @@
     height: 480
   });
   camera.start().then(() => {
-    statusEl.textContent = 'Camera ready! Hold 🐶 Dog sign 1.5s → White smoke burst + clones (30s).';
+    statusEl.textContent = 'Camera ready! Hold 🐶 Dog sign 1.5s → white smoke + clones (30s). Rasengan size follows your hand.';
   }).catch(e => {
     statusEl.textContent = 'Camera error: ' + e.message;
   });
